@@ -24,7 +24,8 @@ def create_app():
     migrate.init_app(app, db)
     
     # CORS
-    CORS(app, resources={r"/*": {"origins": ["http://localhost:5173"]}})
+    CORS(app, resources={r"/*": {"origins": ["http://localhost:5173", "http://localhost:5174"]}})
+
 
     # ✅ IMPORT MODELS HERE (before return)
     from . import models
