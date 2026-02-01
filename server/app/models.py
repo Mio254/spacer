@@ -13,8 +13,13 @@ class Space(db.Model):
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # NEW FIELDS
+    location = db.Column(db.String(200))
+    max_capacity = db.Column(db.Integer)
+    operating_hours = db.Column(db.String(100))
     
-    # REMOVE or COMMENT OUT this line for now:
+    # Commented out relationship for now
     # bookings = db.relationship('Booking', backref='space', lazy=True, cascade='all, delete-orphan')
     
     def to_dict(self):
@@ -27,5 +32,8 @@ class Space(db.Model):
             'capacity': self.capacity,
             'is_active': self.is_active,
             'created_at': self.created_at.isoformat() if self.created_at else None,
-            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
+            'location': self.location,
+            'max_capacity': self.max_capacity,
+            'operating_hours': self.operating_hours
         }
