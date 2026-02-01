@@ -24,8 +24,7 @@ def create_app():
     migrate.init_app(app, db)
     
     # CORS
-    CORS(app, resources={r"/*": {"origins": ["http://localhost:5173", "http://localhost:5174"]}})
-
+    CORS(app, resources={r"/*": {"origins": ["http://localhost:5173"]}})
 
     # ✅ IMPORT MODELS HERE (before return)
     from . import models
@@ -34,8 +33,8 @@ def create_app():
     def health():
         return jsonify({"ok": True, "service": "spacer-api"}), 200
 
-    # ✅ REGISTER BLUEPRINTS (CRITICAL - ADDED)
+    return app
+
+    # Register blueprints
     from app.routes.spaces import spaces_bp
     app.register_blueprint(spaces_bp, url_prefix='/api')
-
-    return app
