@@ -42,7 +42,7 @@ function App() {
           <p>Checking backend connection…</p>
         )}
       </div>
-    </Router>
+    </Router> 
   );
 }
 
