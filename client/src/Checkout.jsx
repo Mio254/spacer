@@ -70,7 +70,7 @@ const CheckoutForm = ({ bookingId, amount }) => {
       <button disabled={!stripe || processing}>Pay ${amount}</button>
       {error && <div>{error}</div>}
     </form>
-  );
+  ); 
 };
 
 const Checkout = ({ bookingId, amount }) => (
