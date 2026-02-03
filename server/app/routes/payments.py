@@ -65,3 +65,4 @@ def confirm_payment(payment_intent_id):
             return jsonify({"error": "Payment not completed"}), 400
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+ 
