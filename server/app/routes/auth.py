@@ -40,7 +40,7 @@ def login():
     access_token = create_access_token(identity=user.id)
     return jsonify({"access_token": access_token}), 200
 
-@auth_bp.route('/logout', methods=['POST'])
+@auth_bp.route('/logout', methods=['POST']) 
 @jwt_required()
 def logout():
     # For JWT, logout is handled client-side by discarding the token
