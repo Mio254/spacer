@@ -45,4 +45,4 @@ def login():
 def logout():
     # For JWT, logout is handled client-side by discarding the token
     # Server-side, we can just return success
-    return jsonify({"message": "Logged out successfully"}), 200
+    return jsonify({"message": "Logged out successfully"}), 200 

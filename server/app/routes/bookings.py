@@ -11,7 +11,7 @@ bookings_bp = Blueprint('bookings', __name__)
 def update_payment_status(booking_id):
     booking = Booking.query.get(booking_id)
     if not booking:
-        return jsonify({"error": "Booking not found"}), 404
+        return jsonify({"error": "Booking not found"}), 404 
 
     # Allow admin or the user
     current_user = get_jwt_identity()
@@ -23,11 +23,11 @@ def update_payment_status(booking_id):
     data = request.get_json()
     status = data.get('payment_status')
     if status not in ['unpaid', 'paid', 'refunded']:
-        return jsonify({"error": "Invalid status"}), 400
+        return jsonify({"error": "Invalid status"}), 400 
 
     booking.payment_status = status
     db.session.commit()
 
-    return jsonify({"message": "Payment status updated"}), 200
+    return jsonify({"message": "Payment status updated"}), 200 
 
 

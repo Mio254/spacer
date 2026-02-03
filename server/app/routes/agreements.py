@@ -34,4 +34,4 @@ def accept_agreement():
     db.session.add(acceptance)
     db.session.commit()
 
-    return jsonify({"message": "Agreement accepted", "accepted_at": acceptance.accepted_at.isoformat()}), 201
+    return jsonify({"message": "Agreement accepted", "accepted_at": acceptance.accepted_at.isoformat()}), 201 
