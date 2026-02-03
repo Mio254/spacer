@@ -18,7 +18,7 @@ def accept_agreement():
     if not booking:
         return jsonify({"error": "Booking not found"}), 404
 
-    if booking.user_id != get_jwt_identity():
+    if booking.user_id != get_jwt_identity(): 
         return jsonify({"error": "Unauthorized"}), 403
 
     # Check if already accepted
