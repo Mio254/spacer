@@ -4,7 +4,7 @@ from ..models import Invoice, Booking, Space
 
 invoices_bp = Blueprint('invoices', __name__)
 
-@invoices_bp.route('/<int:invoice_id>', methods=['GET'])
+@invoices_bp.route('/<int:invoice_id>', methods=['GET']) 
 @jwt_required()
 def get_invoice(invoice_id):
     invoice = Invoice.query.get(invoice_id)
