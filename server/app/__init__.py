@@ -3,6 +3,10 @@ from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from dotenv import load_dotenv
+from app.config import Config
+from app.extensions import db, migrate, jwt
+from app.routes.auth import auth_bp
+from app.routes.admin import admin_bp
 import os
 
 # package marker
@@ -39,5 +43,29 @@ def create_app():
     # ✅ REGISTER BLUEPRINTS (CRITICAL - ADDED)
     from app.routes.spaces import spaces_bp
     app.register_blueprint(spaces_bp, url_prefix='/api')
+
+    return app
+
+def create_app():
+    load_dotenv()
+
+    app = Flask(__name__)
+    app.config.from_object(Config)
+
+    # Extensions
+    db.init_app(app)
+    migrate.init_app(app, db)
+    jwt.init_app(app)
+
+    # CORS for Vite
+    CORS(app, resources={r"/*": {"origins": ["http://localhost:5173"]}})
+
+    # Blueprints
+    app.register_blueprint(auth_bp)
+    app.register_blueprint(admin_bp)
+
+    @app.get("/health")
+    def health():
+        return jsonify({"ok": True, "service": "spacer-api"}), 200
 
     return app
