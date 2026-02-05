@@ -1,4 +1,4 @@
-import Booking from "../models/booking.js"
+import Booking from "../../../server/models/booking.js"
 
 export const isAvailable = async (spaceId, startDate, endDate) => {
   const clash = await Booking.findOne({
