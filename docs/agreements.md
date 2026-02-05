@@ -120,3 +120,6 @@ Each contributor is responsible for rebasing or merging dev into their branch.
 Summary
 
 The repository has been standardized to a Flask-only backend running on port 5001, with all legacy Node backend code removed from active use. The dev branch reflects this baseline and must be used as the reference point for all ongoing development.
+
+Before continuing work, contributors must rebase their feature branches onto the latest `origin/dev`:
+Rebasing dev itself is not allowed.
