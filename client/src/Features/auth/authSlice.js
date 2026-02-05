@@ -17,7 +17,7 @@ async function request(path, options = {}) {
   try {
     data = text ? JSON.parse(text) : null;
   } catch {
-    data = text || null; // fallback for non-JSON responses
+    data = text || null; 
   }
 
   if (!res.ok) {
