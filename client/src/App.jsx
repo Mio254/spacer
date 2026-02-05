@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Routes, Route, Link } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { clearAuth } from "./features/auth/authSlice";
@@ -42,12 +42,10 @@ function Home() {
 
       <hr />
 
-      <p><strong>Auth:</strong></p>
-      {token ? (
-        <pre>{JSON.stringify(user, null, 2)}</pre>
-      ) : (
-        <p>Not logged in.</p>
-      )}
+      <p>
+        <strong>Auth:</strong>
+      </p>
+      {token ? <pre>{JSON.stringify(user, null, 2)}</pre> : <p>Not logged in.</p>}
     </div>
   );
 }
@@ -57,7 +55,7 @@ export default function App() {
   const { token, user } = useSelector((s) => s.auth);
 
   return (
-    <BrowserRouter>
+    <>
       <nav
         style={{
           display: "flex",
@@ -103,6 +101,6 @@ export default function App() {
           }
         />
       </Routes>
-    </BrowserRouter>
+    </>
   );
 }

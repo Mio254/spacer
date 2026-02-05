@@ -1,7 +1,6 @@
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 from app.extensions import db
-from app import db
 
 class Space(db.Model):
     __tablename__ = 'spaces'

@@ -1,31 +1,34 @@
-import { createSlice } from "@reduxjs/toolkit";
+const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:5001";
 
-const tokenFromStorage = localStorage.getItem("token");
-const userFromStorage = localStorage.getItem("user");
+async function request(path, options = {}) {
+  const url = `${API_URL}${path}`;
 
-const initialState = {
-  token: tokenFromStorage || null,
-  user: userFromStorage ? JSON.parse(userFromStorage) : null,
-};
-
-const authSlice = createSlice({
-  name: "auth",
-  initialState,
-  reducers: {
-    setAuth(state, action) {
-      state.token = action.payload.token;
-      state.user = action.payload.user;
-      localStorage.setItem("token", state.token);
-      localStorage.setItem("user", JSON.stringify(state.user));
+  const res = await fetch(url, {
+    headers: {
+      "Content-Type": "application/json",
+      ...(options.headers || {}),
     },
-    clearAuth(state) {
-      state.token = null;
-      state.user = null;
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
-    },
-  },
-});
+    ...options,
+  });
 
-export const { setAuth, clearAuth } = authSlice.actions;
-export default authSlice.reducer;
+  const text = await res.text();
+
+  let data = null;
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch {
+    data = text || null; // fallback for non-JSON responses
+  }
+
+  if (!res.ok) {
+    const msg =
+      (data && typeof data === "object" && (data.error || data.message)) ||
+      (typeof data === "string" && data) ||
+      `Request failed (${res.status})`;
+    throw new Error(msg);
+  }
+
+  return data;
+}
+
+export const api = { request, API_URL };
