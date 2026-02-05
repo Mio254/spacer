@@ -1,44 +1,41 @@
 import React, { useState } from "react";
-import { useDispatch } from "react-redux";
-import { useNavigate, Link } from "react-router-dom";
-import { apiRequest } from "../api/api";
-import { setAuth } from "../features/auth/authSlice";
+import { useDispatch, useSelector } from "react-redux";
+import { login } from "../features/auth/authSlice";
+import { Link, useNavigate } from "react-router-dom";
 
 export default function Login() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [err, setErr] = useState(null);
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const { status, error } = useSelector((s) => s.auth);
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
   async function onSubmit(e) {
     e.preventDefault();
-    setErr(null);
-    try {
-      const data = await apiRequest("/auth/login", {
-        method: "POST",
-        body: { email, password },
-      });
-      dispatch(setAuth({ token: data.token, user: data.user }));
-      navigate("/");
-    } catch (error) {
-      setErr(error.message);
+    const res = await dispatch(login({ email, password }));
+    if (login.fulfilled.match(res)) {
+      navigate("/", { replace: true });
     }
   }
 
   return (
-    <div style={{ padding: 24, maxWidth: 420 }}>
+    <div style={{ maxWidth: 420, margin: "40px auto" }}>
       <h2>Login</h2>
-      {err && <p style={{ color: "crimson" }}>{err}</p>}
+
       <form onSubmit={onSubmit}>
         <label>Email</label>
         <input value={email} onChange={(e) => setEmail(e.target.value)} style={{ width: "100%" }} />
-        <br /><br />
-        <label>Password</label>
+
+        <label style={{ display: "block", marginTop: 12 }}>Password</label>
         <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} style={{ width: "100%" }} />
-        <br /><br />
-        <button type="submit">Login</button>
+
+        <button disabled={status === "loading"} style={{ marginTop: 16 }}>
+          {status === "loading" ? "Signing in..." : "Login"}
+        </button>
       </form>
+
+      {error && <p style={{ color: "crimson" }}>{error}</p>}
 
       <p style={{ marginTop: 12 }}>
         No account? <Link to="/register">Register</Link>
