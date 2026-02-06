@@ -5,6 +5,7 @@ __pycache__/
 venv/
 .env
 instance/
+server/venv/
 
 # Node
 node_modules/

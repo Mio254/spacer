@@ -1,41 +1,50 @@
-from flask import Flask, jsonify
-from flask_cors import CORS
-from flask_sqlalchemy import SQLAlchemy
-from flask_migrate import Migrate
-from dotenv import load_dotenv
 import os
+from flask import Flask, jsonify
+from dotenv import load_dotenv
+from flask_cors import CORS
 
-db = SQLAlchemy()
-migrate = Migrate()
+from app.extensions import db, migrate, jwt
+
+cors = CORS()
 
 def create_app():
     load_dotenv()
 
     app = Flask(__name__)
-    
-    # Database config
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv(
-        'DATABASE_URL', 'sqlite:///spacer.db'
-    )
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    
-    # Initialize extensions
+
+    app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL", "sqlite:///spacer.db")
+    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+    app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", "dev-jwt-secret")
+    app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "dev-secret")
+
     db.init_app(app)
     migrate.init_app(app, db)
-    
-    # CORS
-    CORS(app, resources={r"/*": {"origins": ["http://localhost:5173", "http://localhost:5174"]}})
+    jwt.init_app(app)
+
+    from app import models  # noqa: F401
 
 
-    # ✅ IMPORT MODELS HERE (before return)
-    from . import models
+    cors.init_app(
+        app,
+        resources={r"/api/*": {"origins": [
+            "http://localhost:5173",
+            "http://127.0.0.1:5173",
+            "http://localhost:5174",
+            "http://127.0.0.1:5174",
+        ]}},
+        supports_credentials=True,
+    )
+
+    from app.routes.auth import auth_bp
+    from app.routes.admin import admin_bp
+    from app.routes.spaces import spaces_bp
+
+    app.register_blueprint(auth_bp)
+    app.register_blueprint(admin_bp)
+    app.register_blueprint(spaces_bp)
 
     @app.get("/health")
     def health():
         return jsonify({"ok": True, "service": "spacer-api"}), 200
-
-    # ✅ REGISTER BLUEPRINTS (CRITICAL - ADDED)
-    from app.routes.spaces import spaces_bp
-    app.register_blueprint(spaces_bp, url_prefix='/api')
 
     return app
