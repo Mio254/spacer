@@ -33,7 +33,7 @@ export default function SpacesPage() {
               style={{ height: '200px', objectFit: 'cover', borderRadius: '6px' }} 
             />
             <h3>{space.name}</h3>
-            <p style={{ color: '#666', fontSize: '0.9rem' }}>📍 {space.location || 'Nairobi'}</p>
+            <p style={{color: '#666', fontSize: '0.9rem'}}>📍 {space.location || 'Nairobi, Kenya'}</p>
             <p>KSH {space.price_per_hour}/hour • 👥 {space.max_capacity || space.capacity} people</p>
             <Link to={`/spaces/${space.id}`} style={{ color: '#007bff', textDecoration: 'underline' }}>View Details</Link>
           </div>
