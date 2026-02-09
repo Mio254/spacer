@@ -1,4 +1,5 @@
-const API_BASE = process.env.REACT_APP_API_BASE || "http://127.0.0.1:5001";
+const API_BASE = import.meta.env.VITE_API_URL || "http://127.0.0.1:5001";
+
 
 export async function apiFetch(path, { method = "GET", body, token } = {}) {
   const headers = { "Content-Type": "application/json" };

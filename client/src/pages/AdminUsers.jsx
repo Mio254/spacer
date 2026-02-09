@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
-import { apiRequest } from "../api/api";
+import { api } from "../api/api";
 
 export default function AdminUsers() {
   const { token } = useSelector((s) => s.auth);
@@ -8,7 +8,12 @@ export default function AdminUsers() {
   const [err, setErr] = useState(null);
 
   useEffect(() => {
-    apiRequest("/admin/users", { token })
+    api
+      .request("/admin/users", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
       .then(setUsers)
       .catch((e) => setErr(e.message));
   }, [token]);

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Routes, Route, Link } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { clearAuth } from "./Features/auth/authSlice";
+import { logout } from "./Features/auth/authSlice";
 
 import Login from "./pages/Login";
 import Register from "./pages/Register";
