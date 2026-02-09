@@ -1,4 +1,4 @@
-# Spacer (Skeleton)
+# Spacer 
 
 ## Run backend
 ```bash
