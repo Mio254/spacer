@@ -64,7 +64,7 @@ sample_spaces = [
         "price_per_hour": 85,
         "capacity": 20,
         "image_url": "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=800",
-        "location": "Nairobi",
+        "location": "Kileleshwa, Nairobi",
         "max_capacity": 20,
         "operating_hours": "8:00 AM - 8:00 PM Daily",
         "is_active": True
@@ -92,14 +92,64 @@ sample_spaces = [
         "is_active": True
     },
     {
-        "name": "Parklands Photography Studio",
-        "description": "Professional photography studio with multiple backdrops, lighting equipment, and changing rooms.",
-        "price_per_hour": 2800,
-        "capacity": 15,
-        "image_url": "https://www.magnasystems.co.ke/photo-studio.html",
-        "location": "Parklands, Nairobi",
-        "max_capacity": 15,
-        "operating_hours": "8:00 AM - 10:00 PM Daily",
-        "is_active": True
-    }
+        
+    "name": "Parklands Photography Studio",
+    "description": "Professional photography studio with multiple backdrops, lighting equipment, and changing rooms. Ideal for photoshoots and video production.",
+    "price_per_hour": 2800,
+    "capacity": 15,
+    "image_url": "https://listingster.com/wp-content/uploads/2024/10/Photoshoot-Studios-in-Kasarani-577x385.jpg",  # UPDATED
+    "location": "Parklands, Nairobi",
+    "max_capacity": 15,
+    "operating_hours": "8:00 AM - 8:00 PM",
+    "is_active": True
+},
+ 
 ]
+
+def seed_spaces():
+    """Add sample spaces to database"""
+    from app import create_app, db
+    from app.models import Space
+    
+    app = create_app()
+    with app.app_context():
+        # Check if spaces already exist
+        existing_count = Space.query.count()
+        if existing_count > 0:
+            print(f"Database already has {existing_count} spaces")
+            return
+        
+        # Add all spaces
+        for space_data in sample_spaces:
+            space = Space(**space_data)
+            db.session.add(space)
+        
+        db.session.commit()
+        print(f"✅ Added {len(sample_spaces)} spaces to database")
+
+if __name__ == "__main__":
+    seed_spaces()
+
+def seed_spaces():
+    """Add sample spaces to database"""
+    from app import create_app, db
+    from app.models import Space
+    
+    app = create_app()
+    with app.app_context():
+        # Check if spaces already exist
+        existing_count = Space.query.count()
+        if existing_count > 0:
+            print(f"Database already has {existing_count} spaces")
+            return
+        
+        # Add all spaces
+        for space_data in sample_spaces:
+            space = Space(**space_data)
+            db.session.add(space)
+        
+        db.session.commit()
+        print(f"✅ Added {len(sample_spaces)} spaces to database")
+
+if __name__ == "__main__":
+    seed_spaces()
