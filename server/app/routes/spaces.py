@@ -44,7 +44,7 @@ def create_space():
     space = Space(
         name=name,
         description=description,
-        owner_id=get_jwt_identity(),
+        owner_id=int(get_jwt_identity()),
         price_per_hour=price_per_hour
     )
     db.session.add(space)
