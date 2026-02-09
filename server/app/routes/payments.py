@@ -8,8 +8,6 @@ payments_bp = Blueprint('payments', __name__)
 @payments_bp.route('/create-intent', methods=['POST'])
 @jwt_required()
 def create_payment_intent():
-    stripe.api_key = current_app.config['STRIPE_SECRET_KEY']
-
     data = request.get_json()
     booking_id = data.get('booking_id')
     amount = data.get('amount')  # amount in cents
@@ -21,27 +19,21 @@ def create_payment_intent():
     if not booking:
         return jsonify({"error": "Booking not found"}), 404
 
-    if booking.user_id != get_jwt_identity():
+    if booking.user_id != int(get_jwt_identity()):
         return jsonify({"error": "Unauthorized"}), 403
 
-    try:
-        intent = stripe.PaymentIntent.create(
-            amount=amount,
-            currency='usd',
-            metadata={'booking_id': str(booking_id)}
-        )
+    # Mock payment intent for testing (replace with real Stripe when configured)
+    mock_client_secret = f"pi_mock_{booking_id}_{amount}_secret"
 
-        payment = Payment(
-            booking_id=booking_id,
-            amount=amount / 100,  # convert to dollars
-            stripe_payment_intent_id=intent.id
-        )
-        db.session.add(payment)
-        db.session.commit()
+    payment = Payment(
+        booking_id=booking_id,
+        amount=amount / 100,  # convert to dollars
+        stripe_payment_intent_id=f"pi_mock_{booking_id}"
+    )
+    db.session.add(payment)
+    db.session.commit()
 
-        return jsonify({'client_secret': intent.client_secret}), 200
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    return jsonify({'client_secret': mock_client_secret}), 200
 
 @payments_bp.route('/confirm/<payment_intent_id>', methods=['POST'])
 @jwt_required()
