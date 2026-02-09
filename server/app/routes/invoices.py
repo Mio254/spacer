@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify
+usfrom flask import Blueprint, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from ..models import Invoice, Booking, Space
 
@@ -11,7 +11,7 @@ def get_invoice(invoice_id):
     if not invoice:
         return jsonify({"error": "Invoice not found"}), 404
 
-    if invoice.user_id != get_jwt_identity():
+    if invoice.user_id != int(get_jwt_identity()):
         return jsonify({"error": "Unauthorized"}), 403
 
     booking = Booking.query.get(invoice.booking_id)
@@ -30,4 +30,4 @@ def get_invoice(invoice_id):
     }
 
     return jsonify(invoice_data), 200
- 
+ i

@@ -11,10 +11,10 @@ bookings_bp = Blueprint('bookings', __name__)
 def update_payment_status(booking_id):
     booking = Booking.query.get(booking_id)
     if not booking:
-        return jsonify({"error": "Booking not found"}), 404 
+        return jsonify({"error": "Booking not found"}), 404 commi
 
     # Allow admin or the user
-    current_user = get_jwt_identity()
+    current_user = int(get_jwt_identity())
     # Assuming User model has role, but for simplicity, check if user_id matches or admin
     if booking.user_id != current_user:
         # In real app, check role
