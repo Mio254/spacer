@@ -21,7 +21,7 @@ def create_app():
     jwt = JWTManager(app)
 
     # Vite dev server
-    CORS(app, resources={r"/*": {"origins": ["http://localhost:5173"]}})
+    CORS(app, resources={r"/*": {"origins": ["http://localhost:5173", "http://localhost:5174"]}})
 
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(bookings_bp, url_prefix='/bookings')
