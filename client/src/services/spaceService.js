@@ -1,3 +1,4 @@
+// API base URL - connects to Flask backend on port 5000
 const API_URL = 'http://localhost:5000/api';
 export const spaceService = {
   async getAllSpaces() {
