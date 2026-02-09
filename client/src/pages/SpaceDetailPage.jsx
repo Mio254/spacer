@@ -138,6 +138,7 @@ export default function SpaceDetailPage() {
               onClick={handleBooking}
               disabled={!selectedDate}
             >
+              // All prices in Kenyan Shillings (KSH)
               📅 Book Now for KSH {calculateTotal()}
             </button>
           </div>
