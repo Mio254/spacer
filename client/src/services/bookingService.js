@@ -1,19 +1,37 @@
 import axios from "axios";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:5001";
-
+// Create a pre-configured axios instance
 const api = axios.create({
-  baseURL: `${API_URL}/api/bookings`,
+  baseURL: "/api/bookings", // Matches Flask route prefix
 });
 
-// Automatically attach token if present
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
-  if (token) config.headers.Authorization = `Bearer ${token}`;
-  return config;
-});
+// --- Check availability ---
+// GET /api/bookings/space/:spaceId?start_date=...&end_date=...
+export const checkAvailability = async (spaceId, params) => {
+  try {
+    const response = await api.get(`/space/${spaceId}`, { params });
+    // Flask returns { available: true/false }
+    return response;
+  } catch (error) {
+    console.error("Error checking availability:", error);
+    throw error;
+  }
+};
 
-export const checkAvailability = (spaceId, params) =>
-  api.get(`/space/${spaceId}`, { params });
-
-export const createBooking = (data) => api.post("/", data);
+// --- Create booking ---
+// POST /api/bookings/
+// Requires JWT token in Authorization header
+export const createBooking = async (data) => {
+  try {
+    const token = localStorage.getItem("token"); // Make sure token is saved after login
+    const response = await api.post("/", data, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response;
+  } catch (error) {
+    console.error("Error creating booking:", error);
+    throw error;
+  }
+};
