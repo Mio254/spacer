@@ -7,6 +7,11 @@ auth_bp = Blueprint('auth', __name__)
 
 @auth_bp.route('/register', methods=['POST'])
 def register():
+    """
+    Register a new user.
+    Expects JSON with email, password.
+    Returns success message or error.
+    """
     data = request.get_json()
     email = data.get('email')
     password = data.get('password')
@@ -26,6 +31,11 @@ def register():
 
 @auth_bp.route('/login', methods=['POST'])
 def login():
+    """
+    Login user and return JWT token.
+    Expects JSON with email, password.
+    Returns access token or error.
+    """
     data = request.get_json()
     email = data.get('email')
     password = data.get('password')
@@ -40,9 +50,14 @@ def login():
     access_token = create_access_token(identity=str(user.id))
     return jsonify({"access_token": access_token}), 200
 
-@auth_bp.route('/logout', methods=['POST']) 
+@auth_bp.route('/logout', methods=['POST'])
 @jwt_required()
 def logout():
+    """
+    Logout endpoint (client-side token removal).
+    Requires JWT token.
+    Returns success message.
+    """
     # For JWT, logout is handled client-side by discarding the token
     # Server-side, we can just return success
-    return jsonify({"message": "Logged out successfully"}), 200 
+    return jsonify({"message": "Logged out successfully"}), 200

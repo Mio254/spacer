@@ -2,40 +2,49 @@ import { useState, useEffect } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 
+// Load Stripe with publishable key (for testing, this is mocked)
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
 
+/**
+ * CheckoutForm component handles the payment form using Stripe Elements.
+ * Creates payment intent on mount and handles form submission.
+ */
 const CheckoutForm = ({ bookingId, amount }) => {
-  const stripe = useStripe();
-  const elements = useElements();
-  const [clientSecret, setClientSecret] = useState('');
-  const [error, setError] = useState(null);
-  const [processing, setProcessing] = useState(false);
+  const stripe = useStripe(); // Stripe hook
+  const elements = useElements(); // Elements hook
+  const [clientSecret, setClientSecret] = useState(''); // Client secret for payment intent
+  const [error, setError] = useState(null); // Error state
+  const [processing, setProcessing] = useState(false); // Processing state
 
+  // Create payment intent when component mounts
   useEffect(() => {
-    // Create payment intent
     fetch('http://127.0.0.1:5001/payments/create-intent', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('token')}` },
-      body: JSON.stringify({ booking_id: bookingId, amount: amount * 100 }) // amount in cents
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${localStorage.getItem('token')}` // JWT token from localStorage
+      },
+      body: JSON.stringify({ booking_id: bookingId, amount: amount * 100 }) // Convert to cents
     })
       .then(res => res.json())
       .then(data => {
         if (data.client_secret) {
-          setClientSecret(data.client_secret);
+          setClientSecret(data.client_secret); // Set client secret if successful
         } else {
-          setError(data.error);
+          setError(data.error); // Set error if failed
         }
       });
   }, [bookingId, amount]);
 
+  // Handle form submission for payment
   const handleSubmit = async (event) => {
     event.preventDefault();
-    if (!stripe || !elements) return;
+    if (!stripe || !elements) return; // Ensure Stripe is loaded
 
-    setProcessing(true);
+    setProcessing(true); // Set processing state
     const { error, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
       payment_method: {
-        card: elements.getElement(CardElement),
+        card: elements.getElement(CardElement), // Get card element
       }
     });
 
@@ -51,7 +60,7 @@ const CheckoutForm = ({ bookingId, amount }) => {
         .then(res => res.json())
         .then(data => {
           if (data.message) {
-            alert('Payment successful!');
+            alert('Payment successful!'); // Success alert
           } else {
             setError(data.error || 'Confirmation failed');
           }
@@ -66,13 +75,16 @@ const CheckoutForm = ({ bookingId, amount }) => {
 
   return (
     <form onSubmit={handleSubmit}>
-      <CardElement />
-      <button disabled={!stripe || processing}>Pay ${amount}</button>
-      {error && <div>{error}</div>}
+      <CardElement /> {/* Stripe card input element */}
+      <button disabled={!stripe || processing}>Pay ${amount}</button> {/* Submit button */}
+      {error && <div>{error}</div>} {/* Display error if any */}
     </form>
-  ); 
+  );
 };
 
+/**
+ * Checkout component wraps CheckoutForm with Stripe Elements provider.
+ */
 const Checkout = ({ bookingId, amount }) => (
   <Elements stripe={stripePromise}>
     <CheckoutForm bookingId={bookingId} amount={amount} />
