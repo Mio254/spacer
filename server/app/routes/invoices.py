@@ -1,10 +1,10 @@
-usfrom flask import Blueprint, jsonify
+from flask import Blueprint, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from ..models import Invoice, Booking, Space
 
 invoices_bp = Blueprint('invoices', __name__)
 
-@invoices_bp.route('/<int:invoice_id>', methods=['GET']) 
+@invoices_bp.route('/<int:invoice_id>', methods=['GET'])
 @jwt_required()
 def get_invoice(invoice_id):
     invoice = Invoice.query.get(invoice_id)
@@ -30,4 +30,3 @@ def get_invoice(invoice_id):
     }
 
     return jsonify(invoice_data), 200
- i
