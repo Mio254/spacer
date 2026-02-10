@@ -13,13 +13,17 @@ function AdminSpacesPage() {
       setError('');
       const res = await fetch('/api/admin/spaces');
       
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      
+      const contentType = res.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await res.text();
+        throw new Error(`Backend returned HTML (${res.status})`);
+      }
+
       const data = await res.json();
       setSpaces(data);
     } catch (err) {
       console.error('Error loading spaces:', err);
-      setError('Error loading: ' + err.message);
+      setError('Backend error: ' + err.message);
     } finally {
       setLoading(false);
     }
@@ -37,54 +41,30 @@ function AdminSpacesPage() {
     }
 
     try {
-      console.log('Sending:', {
-        name: name.trim(),
-        price_per_hour: parseFloat(price),
-        capacity: 20,
-        description: "New space",
-        image_url: "",
-        is_active: true
-      });
-
       const res = await fetch('/api/admin/spaces', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: name.trim(),
+          name: name,
           price_per_hour: parseFloat(price),
-          capacity: 20,
-          description: "New space",
+          capacity: 10,
+          description: "New space added via admin",
           image_url: "",
           is_active: true
         }),
       });
 
-      console.log('Response status:', res.status);
-      console.log('Response headers:', [...res.headers.entries()]);
-      
-      // Try to read response as text first
-      const responseText = await res.text();
-      console.log('Response text:', responseText);
-      
-      let data;
-      try {
-        data = JSON.parse(responseText);
-      } catch {
-        throw new Error(`Not JSON: ${responseText.substring(0, 100)}`);
-      }
-      
-      console.log('Response data:', data);
+      const data = await res.json();
       
       if (!res.ok) {
-        throw new Error(data.errors ? data.errors.join(', ') : `HTTP ${res.status}: ${JSON.stringify(data)}`);
+        throw new Error(data.errors ? data.errors.join(', ') : 'Failed with status ' + res.status);
       }
 
-      // Success
       await loadSpaces();
       setName('');
       setPrice('');
     } catch (err) {
-      console.error('Full error:', err);
+      console.error('Error adding space:', err);
       setError('Error: ' + err.message);
     }
   };
@@ -112,13 +92,11 @@ function AdminSpacesPage() {
         <input
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="Space name (min 2 chars)"
+          placeholder="Space name"
           style={{ padding: '0.5rem', width: '100%', marginBottom: '0.5rem' }}
         />
         <input
           type="number"
-          step="0.01"
-          min="0"
           value={price}
           onChange={(e) => setPrice(e.target.value)}
           placeholder="Price per hour (KSH)"
