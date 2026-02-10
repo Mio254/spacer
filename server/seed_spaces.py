@@ -1,5 +1,5 @@
-# Seed data for Nairobi spaces - Role 2
-# All prices in Kenyan Shillings (KSH)
+# Seed data for Nairobi spaces 
+
 sample_spaces = [
     {
         "name": "Westlands Tech Hub",
