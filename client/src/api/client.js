@@ -1,15 +1,13 @@
 const API_BASE = import.meta.env.VITE_API_URL || "http://127.0.0.1:5001";
 
-export async function apiFetch(path, { method = "GET", body, token, headers: extraHeaders } = {}) {
-  const headers = {
-    "Content-Type": "application/json",
-    ...(extraHeaders || {}),
-  };
-  if (token) headers.Authorization = `Bearer ${token}`;
-
+export async function apiFetch(path, { method = "GET", body, token, headers } = {}) {
   const res = await fetch(`${API_BASE}${path}`, {
     method,
-    headers,
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(headers || {}),
+    },
     body: body ? JSON.stringify(body) : undefined,
   });
 
@@ -22,14 +20,14 @@ export async function apiFetch(path, { method = "GET", body, token, headers: ext
   }
 
   if (!res.ok) {
-    const message =
-      (data && typeof data === "object" && (data.error || data.message)) ||
+    const msg =
+      (data && (data.error || data.message)) ||
+      (typeof data === "string" ? data : null) ||
       `Request failed (${res.status})`;
-    const err = new Error(message);
-    err.status = res.status;
-    err.data = data;
-    throw err;
+    throw new Error(msg);
   }
 
   return data;
 }
+
+export const API_URL = API_BASE;

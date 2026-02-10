@@ -2,16 +2,16 @@ import React from "react";
 import { useSelector } from "react-redux";
 import { Navigate, Outlet } from "react-router-dom";
 
-export default function ProtectedRoute({ roles }) {
+export default function ProtectedRoute({ roles, children, redirectTo = "/login" }) {
   const { token, user } = useSelector((s) => s.auth);
 
-  if (!token) return <Navigate to="/login" replace />;
+  if (!token) return <Navigate to={redirectTo} replace />;
 
-  // If roles specified, user must be loaded and match
   if (roles?.length) {
-    if (!user) return null; // you can show a spinner
+    if (!user) return null; // optional: spinner
     if (!roles.includes(user.role)) return <Navigate to="/" replace />;
   }
 
-  return <Outlet />;
+  
+  return children ? children : <Outlet />;
 }

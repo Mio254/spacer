@@ -1,19 +1,14 @@
-import axios from "axios";
+import { apiFetch } from "../api/client";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:5001";
+export const checkAvailability = (spaceId, params) => {
+  const qs = new URLSearchParams(params).toString();
+  return apiFetch(`/api/bookings/space/${spaceId}?${qs}`);
+};
 
-const api = axios.create({
-  baseURL: `${API_URL}/api/bookings`,
-});
-
-// Automatically attach token if present
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
-  if (token) config.headers.Authorization = `Bearer ${token}`;
-  return config;
-});
-
-export const checkAvailability = (spaceId, params) =>
-  api.get(`/space/${spaceId}`, { params });
-
-export const createBooking = (data) => api.post("/", data);
+export const createBooking = (data, token) => {
+  return apiFetch("/api/bookings", {
+    method: "POST",
+    token,
+    body: data,
+  });
+};

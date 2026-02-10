@@ -4,9 +4,9 @@ const DurationSelector = ({ duration, setDuration }) => {
       type="number"
       min="1"
       value={duration}
-      onChange={(e) => setDuration(Number(e.target.value))}
+      onChange={(e) => setDuration(Number(e.target.value || 1))}
     />
-  )
-}
+  );
+};
 
-export default DurationSelector
+export default DurationSelector;

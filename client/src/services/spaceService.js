@@ -1,15 +1,10 @@
-const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:5001";
+import { apiFetch } from "../api/client";
 
 export const spaceService = {
-  async getAllSpaces() {
-    const res = await fetch(`${API_URL}/api/spaces`);
-    if (!res.ok) throw new Error("Failed fetch spaces");
-    return await res.json();
+  getAllSpaces() {
+    return apiFetch("/api/spaces").then((d) => d.spaces ?? d);
   },
-
-  async getSpace(id) {
-    const res = await fetch(`${API_URL}/api/spaces/${id}`);
-    if (!res.ok) throw new Error("Failed fetch space");
-    return await res.json();
+  getSpace(id) {
+    return apiFetch(`/api/spaces/${id}`).then((d) => d.space ?? d);
   },
 };
