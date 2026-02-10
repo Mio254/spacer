@@ -4,12 +4,12 @@ Spacer is a Nairobi-based platform where people can discover and book unique ven
 
 ## Run backend
 
-cd server
-pipenv run flask run
+cd ~/spacer/server
+source venv/bin/activate  # If you have virtual environment
+python run.py
 
 ## Run frontend
-cd client
-
+cd ~/spacer/client
 npm run dev
 
 Backend: http://127.0.0.1:5001
