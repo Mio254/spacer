@@ -40,6 +40,22 @@ export const login = createAsyncThunk(
   }
 );
 
+
+export const loginWithFirebase = createAsyncThunk(
+  "auth/loginWithFirebase",
+  async ({ id_token }, thunkAPI) => {
+    try {
+      const data = await apiFetch("/api/auth/firebase", {
+        method: "POST",
+        body: { id_token },
+      });
+      return data; // { token, user }
+    } catch (e) {
+      return thunkAPI.rejectWithValue(e.message);
+    }
+  }
+);
+
 export const fetchMe = createAsyncThunk(
   "auth/fetchMe",
   async (_, thunkAPI) => {
@@ -71,7 +87,11 @@ const authSlice = createSlice({
   },
   extraReducers(builder) {
     builder
-      .addCase(register.pending, (s) => { s.status = "loading"; s.error = null; })
+      // REGISTER
+      .addCase(register.pending, (s) => {
+        s.status = "loading";
+        s.error = null;
+      })
       .addCase(register.fulfilled, (s, a) => {
         s.status = "succeeded";
         s.token = a.payload.token;
@@ -82,7 +102,12 @@ const authSlice = createSlice({
         s.status = "failed";
         s.error = a.payload || "Register failed";
       })
-      .addCase(login.pending, (s) => { s.status = "loading"; s.error = null; })
+
+      // LOGIN 
+      .addCase(login.pending, (s) => {
+        s.status = "loading";
+        s.error = null;
+      })
       .addCase(login.fulfilled, (s, a) => {
         s.status = "succeeded";
         s.token = a.payload.token;
@@ -93,11 +118,27 @@ const authSlice = createSlice({
         s.status = "failed";
         s.error = a.payload || "Login failed";
       })
+
+      .addCase(loginWithFirebase.pending, (s) => {
+        s.status = "loading";
+        s.error = null;
+      })
+      .addCase(loginWithFirebase.fulfilled, (s, a) => {
+        s.status = "succeeded";
+        s.token = a.payload.token;
+        s.user = a.payload.user;
+        localStorage.setItem(tokenKey, s.token);
+      })
+      .addCase(loginWithFirebase.rejected, (s, a) => {
+        s.status = "failed";
+        s.error = a.payload || "Google login failed";
+      })
+
+      
       .addCase(fetchMe.fulfilled, (s, a) => {
         s.user = a.payload;
       })
       .addCase(fetchMe.rejected, (s) => {
-        // token might be invalid/expired; leave as-is (you can auto-logout if you want)
       });
   },
 });

@@ -7,7 +7,7 @@ export default function SpaceDetailPage() {
   const { id } = useParams();
 
   const [space, setSpace] = useState(null);
-  const [status, setStatus] = useState("loading"); // loading|succeeded|failed
+  const [status, setStatus] = useState("loading"); 
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -17,7 +17,7 @@ export default function SpaceDetailPage() {
     spaceService
       .getSpace(id)
       .then((data) => {
-        // If your backend returns {space: {...}}, unwrap it.
+        
         const s = data?.space ?? data;
         setSpace(s);
         setStatus("succeeded");

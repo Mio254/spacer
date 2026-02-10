@@ -1,5 +1,10 @@
 import re
 import time
+import os
+import secrets
+import firebase_admin
+from firebase_admin import credentials, auth as fb_auth
+
 from collections import deque
 
 from flask import Blueprint, request, jsonify
@@ -11,6 +16,18 @@ from app.models import User
 auth_bp = Blueprint("auth", __name__, url_prefix="/api/auth")
 
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
+def _init_firebase():
+ 
+    if firebase_admin._apps:
+        return
+
+    cred_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+    if cred_path and os.path.exists(cred_path):
+        firebase_admin.initialize_app(credentials.Certificate(cred_path))
+    else:
+        
+        firebase_admin.initialize_app()
 
 
 def _norm_email(value: str | None) -> str:
@@ -146,3 +163,50 @@ def me():
         return jsonify({"error": "user not found"}), 404
 
     return jsonify({"user": user.to_dict()}), 200
+
+@auth_bp.post("/firebase")
+def firebase_login():
+    """
+    Frontend sends: { "id_token": "<firebase_id_token>" }
+    Backend verifies with Firebase Admin SDK and returns your JWT + user payload.
+    """
+    data = request.get_json(silent=True) or {}
+    id_token = data.get("id_token")
+
+    if not id_token:
+        return jsonify({"error": "id_token is required"}), 400
+
+    try:
+        _init_firebase()
+        decoded = fb_auth.verify_id_token(id_token)
+    except Exception:
+        return jsonify({"error": "invalid firebase token"}), 401
+
+    email = (decoded.get("email") or "").strip().lower()
+    full_name = (decoded.get("name") or "").strip()
+
+    if not email:
+        return jsonify({"error": "firebase token missing email"}), 400
+
+    user = User.query.filter_by(email=email).first()
+
+    if not user:
+        # Your User model requires password_hash (non-null),
+        # so we generate a random password and hash it.
+        random_pw = secrets.token_urlsafe(24)
+
+        user = User(
+            email=email,
+            full_name=full_name or None,
+            role="client",
+            is_active=True,
+        )
+        user.set_password(random_pw)
+        db.session.add(user)
+        db.session.commit()
+
+    if not user.is_active:
+        return jsonify({"error": "account disabled"}), 403
+
+    token = create_access_token(identity=str(user.id), additional_claims={"role": user.role})
+    return jsonify({"token": token, "user": user.to_dict()}), 200
