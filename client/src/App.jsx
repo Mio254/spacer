@@ -17,9 +17,9 @@ function App() {
 }}>
   
   {/* Left side: Home & Browse Spaces */}
-  <div style={{ display: 'flex', gap: '3rem' }}> {/* Increased from 2rem to 3rem */}
-  <Link to="/">🏠 Home</Link>
-  <Link to="/spaces">🔍 Browse Spaces</Link>
+  <div style={{ display: 'flex', gap: '3rem' }}>
+  <Link to="/" style={{ color: 'white', textDecoration: 'none' }}>🏠 Home</Link>
+  <Link to="/spaces" style={{ color: 'white', textDecoration: 'none' }}>🔍 Browse Spaces</Link>
 </div>
   
   {/* Right side: Admin Dashboard (far end) */}

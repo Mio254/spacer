@@ -35,7 +35,7 @@ def create_app():
         return jsonify({"ok": True, "service": "spacer-api"}), 200
 
     # ✅ REGISTER BLUEPRINTS (CRITICAL - ADDED)
-    from app.routes.spaces import spaces_bp
+    from .routes.spaces import spaces_bp
     app.register_blueprint(spaces_bp, url_prefix='/api')
 
     return app

@@ -127,6 +127,7 @@ def admin_spaces():
             price_per_hour=float(data['price_per_hour']),
             image_url=data.get('image_url', ''),
             capacity=int(data['capacity']),
+            location=data.get('location', ''),
             is_active=data.get('is_active', True),
         )
         db.session.add(space)
