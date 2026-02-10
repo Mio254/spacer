@@ -1,4 +1,5 @@
 # Spacer
+Spacer is a Nairobi-based platform where people can discover and book unique venues for meetings, events, and creative sessions. It connects space owners with users looking for hourly/daily rentals, featuring real Nairobi locations with KSH pricing, capacity details, and booking functionality.
 
 
 ## Run backend
