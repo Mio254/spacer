@@ -16,3 +16,6 @@ function App() {
 }
 
 export default App;
+
+// Add to your Routes in App.jsx:
+<Route path="/admin/spaces" element={<AdminSpacesPage />} />
