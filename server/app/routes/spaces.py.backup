@@ -38,105 +38,11 @@ def validate_space_data(data, is_update=False):
     return errors
 
 
-# PUBLIC: Get all active spaces with filtering
+# PUBLIC: Get all active spaces
 @spaces_bp.route('/spaces', methods=['GET'])
 def get_spaces():
-    """Get all active spaces with optional filtering"""
-    # Get query parameters
-    location = request.args.get('location', '').strip()
-    min_price = request.args.get('min_price')
-    max_price = request.args.get('max_price')
-    min_capacity = request.args.get('min_capacity')
-    max_capacity = request.args.get('max_capacity')
-    search = request.args.get('search', '').strip()
-    
-    # Start with base query
-    query = Space.query.filter_by(is_active=True)
-    
-    # Apply filters if provided
-    if location:
-        query = query.filter(Space.location.ilike(f'%{location}%'))
-    
-    if search:
-        query = query.filter(
-            db.or_(
-                Space.name.ilike(f'%{search}%'),
-                Space.description.ilike(f'%{search}%'),
-                Space.location.ilike(f'%{search}%')
-            )
-        )
-    
-    if min_price:
-        try:
-            query = query.filter(Space.price_per_hour >= float(min_price))
-        except ValueError:
-            pass
-    
-    if max_price:
-        try:
-            query = query.filter(Space.price_per_hour <= float(max_price))
-        except ValueError:
-            pass
-    
-    if min_capacity:
-        try:
-            query = query.filter(Space.capacity >= int(min_capacity))
-        except ValueError:
-            pass
-    
-    if max_capacity:
-        try:
-            query = query.filter(Space.capacity <= int(max_capacity))
-        except ValueError:
-            pass
-    
-    # Get results
-    spaces = query.order_by(Space.name).all()
+    spaces = Space.query.filter_by(is_active=True).all()
     return jsonify([space.to_dict() for space in spaces]), 200
-
-
-# PUBLIC: Get available filter options
-@spaces_bp.route('/spaces/filters', methods=['GET'])
-def get_available_filters():
-    """Get available filter options (locations, price ranges, capacities)"""
-    try:
-        # Get all active spaces
-        spaces = Space.query.filter_by(is_active=True).all()
-        
-        # Extract unique locations (skip None/empty)
-        locations = sorted(list(set(
-            [s.location for s in spaces if s.location and s.location.strip()]
-        )))
-        
-        # Calculate price range
-        prices = [s.price_per_hour for s in spaces if s.price_per_hour]
-        min_price = min(prices) if prices else 0
-        max_price = max(prices) if prices else 10000
-        
-        # Calculate capacity range
-        capacities = [s.capacity for s in spaces if s.capacity]
-        min_capacity = min(capacities) if capacities else 0
-        max_capacity = max(capacities) if capacities else 200
-        
-        return jsonify({
-            'locations': locations,
-            'price_range': {
-                'min': float(min_price),
-                'max': float(max_price)
-            },
-            'capacity_range': {
-                'min': int(min_capacity),
-                'max': int(max_capacity)
-            }
-        }), 200
-        
-    except Exception as e:
-        print(f"Error getting filters: {e}")
-        return jsonify({
-            'locations': [],
-            'price_range': {'min': 0, 'max': 10000},
-            'capacity_range': {'min': 0, 'max': 200}
-        }), 200
 
 
 # PUBLIC: Get single space
