@@ -152,8 +152,13 @@ def get_space(space_id):
 
 
 # ADMIN: Create space (auth skipped for now)
-@spaces_bp.route('/admin/spaces', methods=['POST'])
-def create_space():
+@spaces_bp.route('/admin/spaces', methods=['GET', 'POST'])
+def admin_spaces():
+    if request.method == "GET":
+        spaces = Space.query.all()
+        return jsonify([space.to_dict() for space in spaces]), 200
+    
+    # POST logic below
     data = request.get_json() or {}
 
     validation_errors = validate_space_data(data)
