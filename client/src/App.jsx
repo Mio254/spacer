@@ -1,79 +1,74 @@
-import React, { useEffect, useState } from "react";
-import { Routes, Route, Link, NavLink } from "react-router-dom";
+// src/App.jsx
+import React, { useEffect } from "react";
+import { Routes, Route, Link, NavLink, Navigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { logout, fetchMe } from "./features/auth/authSlice";
-import { API_URL } from "./api/client";
 
+import Checkout from "./pages/Checkout";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
-import AdminUsers from "./pages/AdminUsers";
 import ProtectedRoute from "./components/ProtectedRoute";
-import BookingPage from "./pages/BookingPage";
-import BookingConfirmation from "./pages/BookingConfirmation";
-
+import AdminRoute from "./components/AdminRoute";
 
 import SpacesPage from "./pages/SpacesPage";
 import SpaceDetailPage from "./pages/SpaceDetailPage";
 import MyBookings from "./pages/MyBookings";
+import BookingPage from "./pages/BookingPage";
+import BookingConfirmation from "./pages/BookingConfirmation";
 import Invoice from "./pages/Invoice";
 
-function Home() {
-  const { user, token } = useSelector((s) => s.auth);
-  const [health, setHealth] = useState(null);
-  const [error, setError] = useState(null);
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminUsers from "./pages/admin/AdminUsers";
+import AdminSpaces from "./pages/admin/AdminSpaces";
+import AdminBookings from "./pages/admin/AdminBookings";
 
-  useEffect(() => {
-    fetch(`${API_URL}/health`)
-      .then((res) => {
-        if (!res.ok) throw new Error("API not reachable");
-        return res.json();
-      })
-      .then(setHealth)
-      .catch((err) => setError(err.message));
-  }, []);
+function Home() {
+  const { token } = useSelector((s) => s.auth);
 
   return (
-    <div className="mx-auto max-w-6xl p-6">
-      <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-        <h1 className="text-3xl font-bold text-gray-900">Spacer</h1>
-        <p className="mt-1 text-gray-600">Space booking demo (Vite + React + Flask + JWT)</p>
+    <main className="mx-auto max-w-6xl px-4 py-12">
+      <section className="rounded-3xl border border-gray-200 bg-white p-10 shadow-sm">
+        <h1 className="text-4xl font-extrabold text-gray-900 md:text-5xl">
+          Find and book spaces with ease.
+        </h1>
+        <p className="mt-4 text-base text-gray-600">
+          Explore, book, and manage spaces for meetings, collaboration, and celebration.
+        </p>
 
-        <div className="mt-6 grid gap-4 md:grid-cols-2">
-          <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-            <div className="text-sm font-semibold text-gray-900">Backend health</div>
-            {error && <p className="mt-2 text-sm text-red-600">Error: {error}</p>}
-            {health ? (
-              <pre className="mt-2 overflow-auto rounded-lg bg-white p-3 text-xs text-gray-800">
-                {JSON.stringify(health, null, 2)}
-              </pre>
-            ) : (
-              <p className="mt-2 text-sm text-gray-600">Checking backend connection…</p>
-            )}
-          </div>
+        <div className="mt-7 flex flex-wrap gap-3">
+          <Link
+            to="/spaces"
+            className="rounded-xl bg-gray-900 px-5 py-3 text-sm font-semibold text-white hover:bg-black"
+          >
+            Browse spaces
+          </Link>
 
-          <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-            <div className="text-sm font-semibold text-gray-900">Auth</div>
-            {token ? (
-              <pre className="mt-2 overflow-auto rounded-lg bg-white p-3 text-xs text-gray-800">
-                {JSON.stringify(user, null, 2)}
-              </pre>
-            ) : (
-              <p className="mt-2 text-sm text-gray-600">Not logged in.</p>
-            )}
-            <div className="mt-3 flex gap-2">
-              <Link to="/spaces" className="rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-700">
-                Browse spaces
+          {!token ? (
+            <>
+              <Link
+                to="/register"
+                className="rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-700"
+              >
+                Get started
               </Link>
-              {!token && (
-                <Link to="/login" className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-semibold text-gray-800 hover:bg-gray-50">
-                  Login
-                </Link>
-              )}
-            </div>
-          </div>
+              <Link
+                to="/login"
+                className="rounded-xl border border-gray-300 bg-white px-5 py-3 text-sm font-semibold text-gray-800 hover:bg-gray-50"
+              >
+                Sign in
+              </Link>
+            </>
+          ) : (
+            <Link
+              to="/bookings"
+              className="rounded-xl border border-gray-300 bg-white px-5 py-3 text-sm font-semibold text-gray-800 hover:bg-gray-50"
+            >
+              My bookings
+            </Link>
+          )}
         </div>
-      </div>
-    </div>
+      </section>
+    </main>
   );
 }
 
@@ -82,7 +77,7 @@ function NavItem({ to, children }) {
     <NavLink
       to={to}
       className={({ isActive }) =>
-        `rounded-lg px-3 py-2 text-sm font-semibold ${
+        `rounded-xl px-3 py-2 text-sm font-semibold transition ${
           isActive ? "bg-gray-900 text-white" : "text-gray-700 hover:bg-gray-100"
         }`
       }
@@ -103,35 +98,42 @@ export default function App() {
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="sticky top-0 z-10 border-b border-gray-200 bg-white/80 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center gap-2 px-4 py-3">
-          <Link to="/" className="mr-2 flex items-center gap-2">
-            <div className="grid h-9 w-9 place-items-center rounded-xl bg-gray-900 text-white font-black">S</div>
+        <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3">
+          <Link to="/" className="flex items-center gap-2">
+            <div className="grid h-9 w-9 place-items-center rounded-xl bg-gray-900 text-white font-black">
+              S
+            </div>
             <span className="text-lg font-bold text-gray-900">Spacer</span>
           </Link>
 
           <nav className="flex flex-1 items-center gap-2">
             <NavItem to="/spaces">Spaces</NavItem>
             {token && <NavItem to="/bookings">My Bookings</NavItem>}
-            {user?.role === "admin" && <NavItem to="/admin/users">Admin</NavItem>}
+            {user?.role === "admin" && <NavItem to="/admin">Admin</NavItem>}
           </nav>
 
           <div className="flex items-center gap-2">
             {!token ? (
               <>
-                <Link to="/login" className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-semibold text-gray-800 hover:bg-gray-50">
-                  Login
+                <Link
+                  to="/login"
+                  className="rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm font-semibold text-gray-800 hover:bg-gray-50"
+                >
+                  Sign in
                 </Link>
-                <Link to="/register" className="rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-700">
-                  Register
+                <Link
+                  to="/register"
+                  className="rounded-xl bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+                >
+                  Get started
                 </Link>
               </>
             ) : (
               <button
-                type="button"
                 onClick={() => dispatch(logout())}
-                className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-semibold text-gray-800 hover:bg-gray-50"
+                className="rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm font-semibold text-gray-800 hover:bg-gray-50"
               >
-                Logout
+                Sign out
               </button>
             )}
           </div>
@@ -140,26 +142,34 @@ export default function App() {
 
       <Routes>
         <Route path="/" element={<Home />} />
+
         <Route path="/spaces" element={<SpacesPage />} />
         <Route path="/spaces/:id" element={<SpaceDetailPage />} />
 
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
+        <Route
+          path="/login"
+          element={token ? <Navigate to="/spaces" replace /> : <Login />}
+        />
+        <Route
+          path="/register"
+          element={token ? <Navigate to="/spaces" replace /> : <Register />}
+        />
+
+        {/* Client Protected */}
+        <Route
+          path="/checkout/:bookingId"
+          element={
+            <ProtectedRoute roles={["client", "admin"]}>
+              <Checkout />
+            </ProtectedRoute>
+          }
+        />
 
         <Route
           path="/bookings"
           element={
             <ProtectedRoute roles={["client", "admin"]}>
               <MyBookings />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/invoices/:id"
-          element={
-            <ProtectedRoute roles={["client", "admin"]}>
-              <Invoice />
             </ProtectedRoute>
           }
         />
@@ -174,7 +184,7 @@ export default function App() {
         />
 
         <Route
-          path="/bookings/confirmation"
+          path="/bookings/:id/confirmation"
           element={
             <ProtectedRoute roles={["client", "admin"]}>
               <BookingConfirmation />
@@ -183,16 +193,69 @@ export default function App() {
         />
 
         <Route
-          path="/admin/users"
+          path="/invoices/:id"
           element={
-            <ProtectedRoute roles={["admin"]}>
-              <AdminUsers />
+            <ProtectedRoute roles={["client", "admin"]}>
+              <Invoice />
             </ProtectedRoute>
           }
         />
 
-        <Route path="*" element={<div className="mx-auto max-w-6xl p-6 text-gray-700">Not Found</div>} />
+        {/* Admin */}
+        <Route
+          path="/admin"
+          element={
+            <AdminRoute>
+              <AdminDashboard />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/users"
+          element={
+            <AdminRoute>
+              <AdminUsers />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/spaces"
+          element={
+            <AdminRoute>
+              <AdminSpaces />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/bookings"
+          element={
+            <AdminRoute>
+              <AdminBookings />
+            </AdminRoute>
+          }
+        />
+
+        <Route
+          path="*"
+          element={
+            <div className="mx-auto max-w-6xl p-6 text-gray-700">
+              <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+                <div className="text-lg font-bold text-gray-900">Not Found</div>
+                <p className="mt-2 text-sm text-gray-600">
+                  That page doesn’t exist. Go back{" "}
+                  <Link to="/" className="font-semibold text-blue-600 hover:underline">
+                    home
+                  </Link>.
+                </p>
+              </div>
+            </div>
+          }
+        />
       </Routes>
+
+      <footer className="mx-auto max-w-6xl px-4 py-10 text-xs text-gray-500">
+        © {new Date().getFullYear()} Spacer
+      </footer>
     </div>
   );
 }

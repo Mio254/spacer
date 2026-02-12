@@ -9,7 +9,7 @@ const AgreementModal = ({ bookingId, onAccept, onClose }) => {
     if (!accepted) return;
 
     try {
-      const token = localStorage.getItem("spacer_token"); // matches authSlice tokenKey
+      const token = localStorage.getItem("spacer_token"); 
       const data = await apiFetch("/api/agreements/accept", {
         method: "POST",
         token,

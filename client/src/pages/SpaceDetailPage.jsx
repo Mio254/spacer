@@ -1,128 +1,156 @@
-import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
-import { spaceService } from "../services/spaceService";
-import BookingForm from "../components/bookings/BookingForm";
+import React, { useEffect, useState } from "react";
+import { Link, useParams } from "react-router-dom";
+import { useSelector } from "react-redux";
+import { apiFetch } from "../api/client";
+
+const FALLBACK_IMG =
+  "https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=1600&q=60";
+
+function Chip({ children }) {
+  return (
+    <span className="rounded-xl bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 ring-1 ring-gray-200">
+      {children}
+    </span>
+  );
+}
+
+function HeaderImage({ src, alt }) {
+  const [broken, setBroken] = useState(false);
+  const url = !src || broken ? FALLBACK_IMG : src;
+
+  return (
+    <div className="relative h-56 w-full overflow-hidden rounded-3xl bg-gray-100 ring-1 ring-gray-200">
+      <img
+        src={url}
+        alt={alt}
+        className="h-full w-full object-cover"
+        onError={() => setBroken(true)}
+      />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-black/10 to-black/0" />
+    </div>
+  );
+}
 
 export default function SpaceDetailPage() {
   const { id } = useParams();
+  const { token } = useSelector((s) => s.auth);
 
   const [space, setSpace] = useState(null);
-  const [status, setStatus] = useState("loading"); 
-  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState("");
 
   useEffect(() => {
-    setStatus("loading");
-    setError(null);
+    let alive = true;
+    (async () => {
+      try {
+        setErr("");
+        setLoading(true);
 
-    spaceService
-      .getSpace(id)
-      .then((data) => {
-        
-        const s = data?.space ?? data;
-        setSpace(s);
-        setStatus("succeeded");
-      })
-      .catch((e) => {
-        setError(e.message);
-        setStatus("failed");
-      });
-  }, [id]);
+        // if your API base is NOT /api, use "/api/spaces/:id"
+        const data = await apiFetch(`/api/spaces/${id}`, { token });
 
-  if (status === "loading") {
+        if (!alive) return;
+        setSpace(data?.space || data);
+      } catch (e) {
+        if (!alive) return;
+        setErr(e.message || "Failed to load space");
+      } finally {
+        if (alive) setLoading(false);
+      }
+    })();
+
+    return () => {
+      alive = false;
+    };
+  }, [id, token]);
+
+  if (loading) {
     return (
-      <div className="mx-auto max-w-6xl p-4">
-        <div className="rounded-xl border border-gray-200 bg-white p-6 text-gray-700">
-          Loading space details...
-        </div>
+      <div className="mx-auto max-w-6xl px-4 py-8">
+        <div className="h-72 animate-pulse rounded-3xl border border-gray-200 bg-white" />
       </div>
     );
   }
 
-  if (status === "failed") {
+  if (err) {
     return (
-      <div className="mx-auto max-w-6xl p-4">
-        <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-red-700">
-          Error: {error}
+      <div className="mx-auto max-w-6xl px-4 py-8">
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          {err}
         </div>
-        <Link to="/spaces" className="mt-4 inline-block text-sm font-semibold text-blue-600 hover:underline">
-          ← Back to spaces
-        </Link>
       </div>
     );
   }
 
   if (!space) {
     return (
-      <div className="mx-auto max-w-6xl p-4">
-        <div className="rounded-xl border border-gray-200 bg-white p-6 text-gray-700">
-          Space not found.
+      <div className="mx-auto max-w-6xl px-4 py-8">
+        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+          <div className="text-lg font-bold text-gray-900">Space not found</div>
+          <Link to="/spaces" className="mt-3 inline-block text-sm font-semibold text-blue-600 hover:underline">
+            Back to spaces
+          </Link>
         </div>
-        <Link to="/spaces" className="mt-4 inline-block text-sm font-semibold text-blue-600 hover:underline">
-          ← Back to spaces
-        </Link>
       </div>
     );
   }
 
-  const imageUrl =
-    space.image_url ||
-    "https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1600&q=80";
-
-  const capacity = space.max_capacity ?? space.capacity ?? "—";
+  const price = space.price_per_hour != null ? `KES ${space.price_per_hour}/hr` : "—";
 
   return (
-    <div className="mx-auto max-w-6xl p-4">
-      <Link to="/spaces" className="mb-4 inline-block text-sm font-semibold text-blue-600 hover:underline">
-        ← Back to spaces
-      </Link>
+    <div className="mx-auto max-w-6xl px-4 py-8">
+      <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
+        <Link to="/spaces" className="text-sm font-semibold text-blue-600 hover:underline">
+          ← Back to spaces
+        </Link>
 
-      <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-        <div className="relative">
-          <img src={imageUrl} alt={space.name} className="h-72 w-full object-cover md:h-96" />
-          <div className="absolute bottom-4 left-4 rounded-full bg-black/70 px-4 py-2 text-sm font-semibold text-white">
-            📍 {space.location || "Nairobi"}
-          </div>
+        <div className="mt-4">
+          <HeaderImage src={space.image_url} alt={space.name || "Space"} />
         </div>
 
-        <div className="grid gap-6 p-6 md:grid-cols-3">
-          {/* Left content */}
-          <div className="md:col-span-2">
-            <h1 className="text-3xl font-bold text-gray-900">{space.name}</h1>
-            <p className="mt-2 text-gray-600">{space.description || "No description provided."}</p>
+        <div className="mt-6 flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
+          <div className="min-w-0">
+            <h1 className="text-3xl font-extrabold tracking-tight text-gray-900">
+              {space.name || "Untitled space"}
+            </h1>
+            <p className="mt-2 text-sm text-gray-600">
+              {space.location || space.city || "Location not set"}
+            </p>
 
-            <div className="mt-6 grid gap-3 sm:grid-cols-3">
-              <InfoCard label="Hourly Rate" value={`KSH ${space.price_per_hour}/hr`} icon="💰" />
-              <InfoCard label="Capacity" value={`${capacity} people`} icon="👥" />
-              <InfoCard label="Hours" value={space.operating_hours || "Flexible"} icon="🕒" />
+            <div className="mt-4 flex flex-wrap gap-2">
+              {space.capacity != null && <Chip>{space.capacity} pax</Chip>}
+              {space.type && <Chip>{space.type}</Chip>}
+              {space.is_available != null && <Chip>{space.is_available ? "Available" : "Unavailable"}</Chip>}
             </div>
+
+            <p className="mt-6 text-sm leading-relaxed text-gray-700">
+              {space.description || "No description provided."}
+            </p>
           </div>
 
-          {/* Booking panel */}
-          <div className="md:col-span-1">
-            <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
-              <h2 className="text-lg font-semibold text-gray-900">Book this space</h2>
-              <p className="mt-1 text-sm text-gray-600">
-                Select start/end date-time, check availability, then confirm.
-              </p>
+          <aside className="w-full md:w-[340px]">
+            <div className="rounded-3xl border border-gray-200 bg-gray-50 p-5">
+              <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">Price</div>
+              <div className="mt-1 text-2xl font-extrabold text-gray-900">{price}</div>
 
-              <div className="mt-4">
-                <BookingForm spaceId={space.id} pricePerHour={space.price_per_hour} />
+              <div className="mt-4 text-xs font-semibold uppercase tracking-wide text-gray-500">Quick actions</div>
+              <div className="mt-3 flex flex-col gap-2">
+                <Link
+                  to={`/bookings/${space.id}`}
+                  className="rounded-xl bg-gray-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-black text-center"
+                >
+                  Book this space
+                </Link>
+                <Link
+                  to="/spaces"
+                  className="rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-800 hover:bg-gray-50 text-center"
+                >
+                  Continue browsing
+                </Link>
               </div>
             </div>
-          </div>
+          </aside>
         </div>
-      </div>
-    </div>
-  );
-}
-
-function InfoCard({ label, value, icon }) {
-  return (
-    <div className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white p-4">
-      <div className="text-2xl">{icon}</div>
-      <div>
-        <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">{label}</div>
-        <div className="text-sm font-bold text-gray-900">{value}</div>
       </div>
     </div>
   );

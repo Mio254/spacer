@@ -1,18 +1,27 @@
 const API_BASE = import.meta.env.VITE_API_URL || "http://127.0.0.1:5001";
 
 export async function apiFetch(path, { method = "GET", body, token, headers } = {}) {
+  const finalHeaders = {
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(headers || {}),
+  };
+
+  const hasBody =
+    body !== undefined && body !== null && method !== "GET" && method !== "HEAD";
+
+  if (hasBody && !finalHeaders["Content-Type"]) {
+    finalHeaders["Content-Type"] = "application/json";
+  }
+
   const res = await fetch(`${API_BASE}${path}`, {
     method,
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(headers || {}),
-    },
-    body: body ? JSON.stringify(body) : undefined,
+    headers: finalHeaders,
+    body: hasBody ? JSON.stringify(body) : undefined,
   });
 
   const text = await res.text();
   let data = null;
+
   try {
     data = text ? JSON.parse(text) : null;
   } catch {

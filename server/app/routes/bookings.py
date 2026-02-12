@@ -4,7 +4,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy import and_
 
 from app.extensions import db
-from app.models import Booking, Space, Payment
+from app.models import Booking, Space, Payment, Invoice
 
 bookings_bp = Blueprint("bookings", __name__, url_prefix="/api/bookings")
 
@@ -19,29 +19,35 @@ def _parse_dt(value: str | None) -> datetime | None:
 
 
 def overlap_exists(space_id: int, start_time: datetime, end_time: datetime) -> bool:
-    conflict = (
+    return (
         Booking.query.filter(
             Booking.space_id == space_id,
             and_(Booking.start_time < end_time, Booking.end_time > start_time),
-        )
-        .first()
+        ).first()
         is not None
     )
-    return conflict
 
 
-def _payment_status_for_booking(booking_id: int) -> str:
+def _payment_info_for_booking(booking_id: int) -> tuple[str, int | None]:
     """
-    Returns latest payment status for a booking:
-    - 'paid' if latest payment is paid
-    - 'unpaid' otherwise (including no payment record yet)
+    Returns (payment_status, invoice_id)
+      - payment_status: "paid" | "unpaid" | latest Payment.status
+      - invoice_id: Invoice.id if exists else None
     """
+    inv = (
+        Invoice.query.filter_by(booking_id=booking_id)
+        .order_by(Invoice.id.desc())
+        .first()
+    )
+    if inv:
+        return "paid", inv.id
+
     payment = (
         Payment.query.filter_by(booking_id=booking_id)
         .order_by(Payment.created_at.desc())
         .first()
     )
-    return payment.status if payment else "unpaid"
+    return (payment.status if payment else "unpaid"), None
 
 
 @bookings_bp.get("/me")
@@ -59,6 +65,8 @@ def my_bookings():
 
     bookings = []
     for b, s in rows:
+        payment_status, invoice_id = _payment_info_for_booking(b.id)
+
         bookings.append(
             {
                 "id": b.id,
@@ -66,12 +74,13 @@ def my_bookings():
                 "space_id": b.space_id,
                 "space_name": s.name,
                 "location": s.location,
-                "start_time": b.start_time.isoformat(),
-                "end_time": b.end_time.isoformat(),
+                "start_time": b.start_time.isoformat() if b.start_time else None,
+                "end_time": b.end_time.isoformat() if b.end_time else None,
                 "duration": b.duration,
                 "total_cost": b.total_cost,
-                "status": b.status,
-                "payment_status": _payment_status_for_booking(b.id),
+                "status": b.status,  # confirmed|cancelled
+                "payment_status": payment_status,  # paid|unpaid|stripe status
+                "invoice_id": invoice_id,  # ✅ NEW
             }
         )
 
@@ -99,6 +108,28 @@ def check_availability(space_id: int):
 
     available = not overlap_exists(space_id, start_time, end_time)
     return jsonify({"available": available}), 200
+
+
+@bookings_bp.delete("/<int:booking_id>")
+@jwt_required()
+def delete_booking(booking_id: int):
+    user_id = int(get_jwt_identity())
+    booking = db.session.get(Booking, booking_id)
+
+    if not booking:
+        return jsonify({"error": "Booking not found"}), 404
+
+    if int(booking.user_id) != user_id:
+        return jsonify({"error": "Unauthorized"}), 403
+
+    payment_status, _invoice_id = _payment_info_for_booking(booking_id)
+    if payment_status == "paid":
+        return jsonify({"error": "Cannot delete a paid booking"}), 400
+
+    db.session.delete(booking)
+    db.session.commit()
+
+    return jsonify({"message": "Booking deleted"}), 200
 
 
 @bookings_bp.post("")
@@ -146,15 +177,4 @@ def create_booking():
     db.session.add(booking)
     db.session.commit()
 
-    
-    return (
-        jsonify(
-            {
-                "booking": {
-                    **booking.to_dict(),
-                    "payment_status": "unpaid",
-                }
-            }
-        ),
-        201,
-    )
+    return jsonify({"booking": {**booking.to_dict(), "payment_status": "unpaid", "invoice_id": None}}), 201
