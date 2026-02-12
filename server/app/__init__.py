@@ -27,6 +27,9 @@ def create_app():
     # Ensure models imported for migrations
     from app import models  # noqa: F401
 
+    with app.app_context():
+        db.create_all()
+
     cors.init_app(
         app,
         resources={r"/api/*": {"origins": [
@@ -40,18 +43,16 @@ def create_app():
 
     
     from app.routes.auth import auth_bp
-    from app.routes.admin import admin_bp
     from app.routes.spaces import spaces_bp
     from app.routes.bookings import bookings_bp
     from app.routes.invoices import invoices_bp
     from app.routes.payments import payments_bp
 
-    app.register_blueprint(auth_bp)
-    app.register_blueprint(admin_bp)
-    app.register_blueprint(spaces_bp)
-    app.register_blueprint(bookings_bp)
-    app.register_blueprint(invoices_bp)
-    app.register_blueprint(payments_bp)
+    app.register_blueprint(auth_bp, url_prefix='/api')
+    app.register_blueprint(spaces_bp, url_prefix='/api')
+    app.register_blueprint(bookings_bp, url_prefix='/api')
+    app.register_blueprint(invoices_bp, url_prefix='/api')
+    app.register_blueprint(payments_bp, url_prefix='/api')
 
     @app.get("/health")
     def health():

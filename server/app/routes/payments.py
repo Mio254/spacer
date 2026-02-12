@@ -4,7 +4,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from app.extensions import db
 from app.models import Payment, Booking
 
-payments_bp = Blueprint("payments", __name__, url_prefix="/api/payments")
+payments_bp = Blueprint("payments", __name__, url_prefix="/payments")
 
 
 @payments_bp.post("/create-intent")

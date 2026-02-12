@@ -6,7 +6,7 @@ from sqlalchemy import and_
 from app.extensions import db
 from app.models import Booking, Space, Payment
 
-bookings_bp = Blueprint("bookings", __name__, url_prefix="/api/bookings")
+bookings_bp = Blueprint("bookings", __name__, url_prefix="/bookings")
 
 
 def _parse_dt(value: str | None) -> datetime | None:

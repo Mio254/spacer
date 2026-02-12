@@ -4,7 +4,7 @@ from flask_jwt_extended import jwt_required, get_jwt
 from app.extensions import db
 from app.models import Space
 
-spaces_bp = Blueprint("spaces", __name__, url_prefix="/api")
+spaces_bp = Blueprint("spaces", __name__, url_prefix="/spaces")
 
 
 def _require_admin():
@@ -18,13 +18,13 @@ def _require_admin():
 # PUBLIC ROUTES
 # --------------------
 
-@spaces_bp.get("/spaces")
+@spaces_bp.get("")
 def get_spaces():
     spaces = Space.query.filter_by(is_active=True).all()
     return jsonify([space.to_dict() for space in spaces]), 200
 
 
-@spaces_bp.get("/spaces/<int:space_id>")
+@spaces_bp.get("/<int:space_id>")
 def get_space(space_id):
     space = Space.query.get_or_404(space_id)
     if not space.is_active:
@@ -36,7 +36,18 @@ def get_space(space_id):
 # ADMIN ROUTES
 # --------------------
 
-@spaces_bp.post("/admin/spaces")
+@spaces_bp.get("/admin")
+@jwt_required()
+def get_all_spaces():
+    denied = _require_admin()
+    if denied:
+        return denied
+
+    spaces = Space.query.all()
+    return jsonify([space.to_dict() for space in spaces]), 200
+
+
+@spaces_bp.post("/admin")
 @jwt_required()
 def create_space():
     denied = _require_admin()
@@ -65,7 +76,7 @@ def create_space():
     return jsonify(space.to_dict()), 201
 
 
-@spaces_bp.put("/admin/spaces/<int:space_id>")
+@spaces_bp.put("/admin/<int:space_id>")
 @jwt_required()
 def update_space(space_id):
     denied = _require_admin()
@@ -92,7 +103,7 @@ def update_space(space_id):
     return jsonify(space.to_dict()), 200
 
 
-@spaces_bp.delete("/admin/spaces/<int:space_id>")
+@spaces_bp.delete("/admin/<int:space_id>")
 @jwt_required()
 def delete_space(space_id):
     denied = _require_admin()

@@ -4,7 +4,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from app.extensions import db
 from app.models import Invoice, Booking, Space
 
-invoices_bp = Blueprint("invoices", __name__, url_prefix="/api/invoices")
+invoices_bp = Blueprint("invoices", __name__, url_prefix="/invoices")
 
 
 @invoices_bp.get("/<int:invoice_id>")
