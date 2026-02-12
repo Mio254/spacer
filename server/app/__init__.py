@@ -1,11 +1,13 @@
-import os
 from flask import Flask, jsonify
-from dotenv import load_dotenv
 from flask_cors import CORS
+from dotenv import load_dotenv
+import os
 
+from app.config import Config
 from app.extensions import db, migrate, jwt
 
 cors = CORS()
+
 
 def create_app():
     load_dotenv()
@@ -13,27 +15,45 @@ def create_app():
     app = Flask(__name__)
     app.url_map.strict_slashes = False
 
-    app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL", "sqlite:///spacer.db")
-    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-    app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", "dev-jwt-secret")
-    app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "dev-secret")
-    app.config["STRIPE_SECRET_KEY"] = os.getenv("STRIPE_SECRET_KEY", "")
+    # Load config
+    app.config.from_object(Config)
 
+    
+    app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv(
+        "DATABASE_URL",
+        app.config.get("SQLALCHEMY_DATABASE_URI")
+    )
+
+    
+    env = (app.config.get("ENV") or "").lower()
+    is_dev = env in ("development", "dev")
+
+    if not is_dev:
+        if not app.config.get("JWT_SECRET_KEY"):
+            raise RuntimeError("JWT_SECRET_KEY must be set in production")
+        if not app.config.get("SECRET_KEY"):
+            raise RuntimeError("SECRET_KEY must be set in production")
+
+  
     db.init_app(app)
     migrate.init_app(app, db)
     jwt.init_app(app)
 
+    
     from app import models  # noqa: F401
 
+   
     cors.init_app(
         app,
         resources={
-            r"/*": {
+            r"/api/*": {
                 "origins": [
                     "http://localhost:5173",
                     "http://127.0.0.1:5173",
                     "http://localhost:5174",
                     "http://127.0.0.1:5174",
+                    "https://spacer-6fe2c.web.app",
+                    "https://spacer-6fe2c.firebaseapp.com",
                 ]
             }
         },
@@ -42,6 +62,7 @@ def create_app():
         methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     )
 
+    
     from app.routes.auth import auth_bp
     from app.routes.admin import admin_bp
     from app.routes.spaces import spaces_bp
