@@ -14,9 +14,7 @@ def _require_admin():
     return None
 
 
-# --------------------
-# PUBLIC ROUTES
-# --------------------
+
 
 @spaces_bp.get("/spaces")
 def get_spaces():
@@ -32,9 +30,7 @@ def get_space(space_id):
     return jsonify(space.to_dict()), 200
 
 
-# --------------------
-# ADMIN ROUTES
-# --------------------
+
 
 @spaces_bp.post("/admin/spaces")
 @jwt_required()
