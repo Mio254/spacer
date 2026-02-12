@@ -15,26 +15,30 @@ def create_app():
     app = Flask(__name__)
     app.url_map.strict_slashes = False
 
-    # Load config
+    
     app.config.from_object(Config)
 
     
-    app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv(
-        "DATABASE_URL",
-        app.config.get("SQLALCHEMY_DATABASE_URI")
+    db_url = os.getenv("DATABASE_URL", "")
+    if db_url.startswith("postgres://"):
+        db_url = db_url.replace("postgres://", "postgresql://", 1)
+
+    app.config["SQLALCHEMY_DATABASE_URI"] = (
+        db_url or app.config.get("SQLALCHEMY_DATABASE_URI")
     )
 
     
     env = (app.config.get("ENV") or "").lower()
     is_dev = env in ("development", "dev")
 
+    
     if not is_dev:
         if not app.config.get("JWT_SECRET_KEY"):
             raise RuntimeError("JWT_SECRET_KEY must be set in production")
         if not app.config.get("SECRET_KEY"):
             raise RuntimeError("SECRET_KEY must be set in production")
 
-  
+    
     db.init_app(app)
     migrate.init_app(app, db)
     jwt.init_app(app)
@@ -42,7 +46,7 @@ def create_app():
     
     from app import models  # noqa: F401
 
-   
+    
     cors.init_app(
         app,
         resources={
@@ -62,7 +66,7 @@ def create_app():
         methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     )
 
-    
+   
     from app.routes.auth import auth_bp
     from app.routes.admin import admin_bp
     from app.routes.spaces import spaces_bp
