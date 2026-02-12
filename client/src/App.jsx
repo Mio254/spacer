@@ -7,6 +7,7 @@ import { API_URL } from "./api/client";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import AdminUsers from "./pages/AdminUsers";
+import AdminSpaces from "./pages/AdminSpaces";
 import ProtectedRoute from "./components/ProtectedRoute";
 import BookingPage from "./pages/BookingPage";
 import BookingConfirmation from "./pages/BookingConfirmation";
@@ -112,7 +113,12 @@ export default function App() {
           <nav className="flex flex-1 items-center gap-2">
             <NavItem to="/spaces">Spaces</NavItem>
             {token && <NavItem to="/bookings">My Bookings</NavItem>}
-            {user?.role === "admin" && <NavItem to="/admin/users">Admin</NavItem>}
+            {user?.role === "admin" && (
+              <>
+                <NavItem to="/admin/users">Users</NavItem>
+                <NavItem to="/admin/spaces">Spaces</NavItem>
+              </>
+            )}
           </nav>
 
           <div className="flex items-center gap-2">
@@ -187,6 +193,15 @@ export default function App() {
           element={
             <ProtectedRoute roles={["admin"]}>
               <AdminUsers />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/spaces"
+          element={
+            <ProtectedRoute roles={["admin"]}>
+              <AdminSpaces />
             </ProtectedRoute>
           }
         />
