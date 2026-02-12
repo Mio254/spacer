@@ -1,6 +1,7 @@
 import re
 import time
 import os
+import json
 import secrets
 import firebase_admin
 from firebase_admin import credentials, auth as fb_auth
@@ -21,13 +22,21 @@ def _init_firebase():
  
     if firebase_admin._apps:
         return
+    
+    
+    sa_json = os.getenv("FIREBASE_SERVICE_ACCOUNT_JSON")
+    if sa_json:
+        info = json.loads(sa_json)
+        firebase_admin.initialize_app(credentials.Certificate(info))
+        return
 
+   
     cred_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
     if cred_path and os.path.exists(cred_path):
         firebase_admin.initialize_app(credentials.Certificate(cred_path))
-    else:
-        
-        firebase_admin.initialize_app()
+        return
+    
+    firebase_admin.initialize_app()
 
 
 def _norm_email(value: str | None) -> str:
@@ -191,8 +200,7 @@ def firebase_login():
     user = User.query.filter_by(email=email).first()
 
     if not user:
-        # Your User model requires password_hash (non-null),
-        # so we generate a random password and hash it.
+
         random_pw = secrets.token_urlsafe(24)
 
         user = User(
