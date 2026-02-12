@@ -1,155 +1,153 @@
-import React, { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
-import { useSelector } from "react-redux";
-import { apiFetch } from "../api/client";
+import { useState, useEffect } from 'react';
+import { useParams, Link } from 'react-router-dom';
+import './SpaceDetailPage.css';
 
-const FALLBACK_IMG =
-  "https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=1600&q=60";
-
-function Chip({ children }) {
-  return (
-    <span className="rounded-xl bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 ring-1 ring-gray-200">
-      {children}
-    </span>
-  );
-}
-
-function HeaderImage({ src, alt }) {
-  const [broken, setBroken] = useState(false);
-  const url = !src || broken ? FALLBACK_IMG : src;
-
-  return (
-    <div className="relative h-56 w-full overflow-hidden rounded-3xl bg-gray-100 ring-1 ring-gray-200">
-      <img
-        src={url}
-        alt={alt}
-        className="h-full w-full object-cover"
-        onError={() => setBroken(true)}
-      />
-      <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-black/10 to-black/0" />
-    </div>
-  );
-}
+const API_URL = 'http://localhost:5001/api';
 
 export default function SpaceDetailPage() {
   const { id } = useParams();
-  const { token } = useSelector((s) => s.auth);
-
   const [space, setSpace] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [err, setErr] = useState("");
+  const [error, setError] = useState('');
+  const [selectedDate, setSelectedDate] = useState('');
+  const [startTime, setStartTime] = useState('09:00');
+  const [endTime, setEndTime] = useState('10:00');
 
   useEffect(() => {
-    let alive = true;
-    (async () => {
-      try {
-        setErr("");
-        setLoading(true);
+    fetch(`${API_URL}/spaces/${id}`)
+      .then(res => res.json())
+      .then(data => {
+        setSpace(data);
+        setLoading(false);
+      })
+      .catch(err => {
+        setError(err.message);
+        setLoading(false);
+      });
+  }, [id]);
 
-        // if your API base is NOT /api, use "/api/spaces/:id"
-        const data = await apiFetch(`/api/spaces/${id}`, { token });
+  const calculateTotal = () => {
+    if (!space || !startTime || !endTime) return 0;
+    const start = parseInt(startTime.split(':')[0]);
+    const end = parseInt(endTime.split(':')[0]);
+    const hours = Math.max(1, end - start);
+    return space.price_per_hour * hours;
+  };
 
-        if (!alive) return;
-        setSpace(data?.space || data);
-      } catch (e) {
-        if (!alive) return;
-        setErr(e.message || "Failed to load space");
-      } finally {
-        if (alive) setLoading(false);
-      }
-    })();
+  const handleBooking = () => {
+    const totalPrice = calculateTotal();
+    alert(`Booking requested for ${space.name}\nDate: ${selectedDate}\nTime: ${startTime} - ${endTime}\nTotal: KSH ${totalPrice}\nLocation: ${space.location}`);
+  };
 
-    return () => {
-      alive = false;
-    };
-  }, [id, token]);
-
-  if (loading) {
-    return (
-      <div className="mx-auto max-w-6xl px-4 py-8">
-        <div className="h-72 animate-pulse rounded-3xl border border-gray-200 bg-white" />
-      </div>
-    );
-  }
-
-  if (err) {
-    return (
-      <div className="mx-auto max-w-6xl px-4 py-8">
-        <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-          {err}
-        </div>
-      </div>
-    );
-  }
-
-  if (!space) {
-    return (
-      <div className="mx-auto max-w-6xl px-4 py-8">
-        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-          <div className="text-lg font-bold text-gray-900">Space not found</div>
-          <Link to="/spaces" className="mt-3 inline-block text-sm font-semibold text-blue-600 hover:underline">
-            Back to spaces
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
-  const price = space.price_per_hour != null ? `KES ${space.price_per_hour}/hr` : "—";
+  if (loading) return <div className="loading">Loading space details...</div>;
+  if (error) return <div className="error">Error: {error}</div>;
+  if (!space) return <div>Space not found</div>;
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8">
-      <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
-        <Link to="/spaces" className="text-sm font-semibold text-blue-600 hover:underline">
-          ← Back to spaces
-        </Link>
-
-        <div className="mt-4">
-          <HeaderImage src={space.image_url} alt={space.name || "Space"} />
+    <div className="space-detail-container">
+      <div className="space-image-section">
+        <img 
+          src={space.image_url || 'https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=800'} 
+          alt={space.name} 
+          className="space-main-image"
+        />
+        <div className="image-overlay">
+          <span className="location-badge">📍 {space.location}</span>
         </div>
+      </div>
 
-        <div className="mt-6 flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
-          <div className="min-w-0">
-            <h1 className="text-3xl font-extrabold tracking-tight text-gray-900">
-              {space.name || "Untitled space"}
-            </h1>
-            <p className="mt-2 text-sm text-gray-600">
-              {space.location || space.city || "Location not set"}
-            </p>
+      <div className="space-content">
+        <h1 className="space-title">{space.name}</h1>
 
-            <div className="mt-4 flex flex-wrap gap-2">
-              {space.capacity != null && <Chip>{space.capacity} pax</Chip>}
-              {space.type && <Chip>{space.type}</Chip>}
-              {space.is_available != null && <Chip>{space.is_available ? "Available" : "Unavailable"}</Chip>}
+        <div className="space-highlights">
+          <div className="highlight-card">
+            <span className="highlight-icon">💰</span>
+            <div>
+              <div className="highlight-label">Hourly Rate</div>
+              <div className="highlight-value">KSH {space.price_per_hour}/hr</div>
             </div>
-
-            <p className="mt-6 text-sm leading-relaxed text-gray-700">
-              {space.description || "No description provided."}
-            </p>
           </div>
 
-          <aside className="w-full md:w-[340px]">
-            <div className="rounded-3xl border border-gray-200 bg-gray-50 p-5">
-              <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">Price</div>
-              <div className="mt-1 text-2xl font-extrabold text-gray-900">{price}</div>
+          <div className="highlight-card">
+            <span className="highlight-icon">👥</span>
+            <div>
+              <div className="highlight-label">Maximum Capacity</div>
+              <div className="highlight-value">{space.max_capacity || space.capacity} people</div>
+            </div>
+          </div>
 
-              <div className="mt-4 text-xs font-semibold uppercase tracking-wide text-gray-500">Quick actions</div>
-              <div className="mt-3 flex flex-col gap-2">
-                <Link
-                  to={`/bookings/${space.id}`}
-                  className="rounded-xl bg-gray-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-black text-center"
-                >
-                  Book this space
-                </Link>
-                <Link
-                  to="/spaces"
-                  className="rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-800 hover:bg-gray-50 text-center"
-                >
-                  Continue browsing
-                </Link>
+          <div className="highlight-card">
+            <span className="highlight-icon">🕒</span>
+            <div>
+              <div className="highlight-label">Operating Hours</div>
+              <div className="highlight-value">{space.operating_hours || 'Flexible'}</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="space-description">
+          <h2>About This Space</h2>
+          <p>{space.description}</p>
+        </div>
+
+        <div className="booking-section">
+          <h2>Book This Space</h2>
+
+          <div className="booking-form">
+            <div className="form-group">
+              <label>Select Date</label>
+              <input 
+                type="date" 
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                min={new Date().toISOString().split('T')[0]}
+                required
+              />
+            </div>
+
+            <div className="time-selection">
+              <div className="form-group">
+                <label>Start Time</label>
+                <select value={startTime} onChange={(e) => setStartTime(e.target.value)}>
+                  {['08:00','09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00'].map(time => (
+                    <option key={time} value={time}>{time}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label>End Time</label>
+                <select value={endTime} onChange={(e) => setEndTime(e.target.value)}>
+                  {['09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00','19:00','20:00'].map(time => (
+                    <option key={time} value={time}>{time}</option>
+                  ))}
+                </select>
               </div>
             </div>
-          </aside>
+
+            <div className="price-summary">
+              <div className="price-row">
+                <span>Hourly Rate:</span>
+                <span>KSH {space.price_per_hour}</span>
+              </div>
+              <div className="price-row">
+                <span>Duration:</span>
+                <span>{parseInt(endTime.split(':')[0]) - parseInt(startTime.split(':')[0])} hours</span>
+              </div>
+              <div className="price-total">
+                <span>Total Amount:</span>
+                <span className="total-price">KSH {calculateTotal()}</span>
+              </div>
+            </div>
+
+            <button 
+              className="book-button"
+              onClick={handleBooking}
+              disabled={!selectedDate}
+            >
+              📅 Book Now for KSH {calculateTotal()}
+            </button>
+          </div>
         </div>
       </div>
     </div>
