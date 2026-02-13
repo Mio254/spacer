@@ -1,60 +1,63 @@
-import stripe
-from flask import Blueprint, request, jsonify, current_app
+from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from ..models import db, Payment, Booking
 
-payments_bp = Blueprint('payments', __name__)
+from app.extensions import db
+from app.models import Payment, Booking
 
-@payments_bp.route('/create-intent', methods=['POST'])
+payments_bp = Blueprint("payments", __name__, url_prefix="/payments")
+
+
+@payments_bp.post("/create-intent")
 @jwt_required()
 def create_payment_intent():
-    data = request.get_json()
-    booking_id = data.get('booking_id')
-    amount = data.get('amount')  # amount in cents
+    data = request.get_json(silent=True) or {}
+    booking_id = data.get("booking_id")
 
-    if not booking_id or not amount:
-        return jsonify({"error": "booking_id and amount required"}), 400
+    if not booking_id:
+        return jsonify({"error": "booking_id required"}), 400
 
-    booking = Booking.query.get(booking_id)
+    booking = db.session.get(Booking, int(booking_id))
     if not booking:
         return jsonify({"error": "Booking not found"}), 404
 
     if booking.user_id != int(get_jwt_identity()):
         return jsonify({"error": "Unauthorized"}), 403
 
-    # Mock payment intent for testing (replace with real Stripe when configured)
-    mock_client_secret = f"pi_mock_{booking_id}_{amount}_secret"
+    amount = booking.total_cost  # source of truth
 
-    payment = Payment(
-        booking_id=booking_id,
-        amount=amount / 100,  # convert to dollars
-        stripe_payment_intent_id=f"pi_mock_{booking_id}"
-    )
-    db.session.add(payment)
+    mock_intent_id = f"pi_mock_{booking.id}"
+    mock_client_secret = f"{mock_intent_id}_secret"
+
+    existing = Payment.query.filter_by(stripe_payment_intent_id=mock_intent_id).first()
+    if not existing:
+        payment = Payment(
+            booking_id=booking.id,
+            amount=float(amount),
+            currency="usd",
+            status="unpaid",
+            stripe_payment_intent_id=mock_intent_id,
+        )
+        db.session.add(payment)
+        db.session.commit()
+
+    return jsonify({"client_secret": mock_client_secret, "payment_intent_id": mock_intent_id}), 200
+
+
+@payments_bp.post("/confirm/<payment_intent_id>")
+@jwt_required()
+def confirm_payment(payment_intent_id: str):
+    payment = Payment.query.filter_by(stripe_payment_intent_id=payment_intent_id).first()
+    if not payment:
+        return jsonify({"error": "Payment not found"}), 404
+
+    booking = db.session.get(Booking, payment.booking_id)
+    if not booking:
+        return jsonify({"error": "Booking not found"}), 404
+
+    if booking.user_id != int(get_jwt_identity()):
+        return jsonify({"error": "Unauthorized"}), 403
+
+    payment.status = "paid"
     db.session.commit()
 
-    return jsonify({'client_secret': mock_client_secret}), 200
-
-@payments_bp.route('/confirm/<payment_intent_id>', methods=['POST'])
-@jwt_required()
-def confirm_payment(payment_intent_id):
-    stripe.api_key = current_app.config['STRIPE_SECRET_KEY']
-
-    try:
-        intent = stripe.PaymentIntent.retrieve(payment_intent_id)
-        if intent.status == 'succeeded':
-            payment = Payment.query.filter_by(stripe_payment_intent_id=payment_intent_id).first()
-            if payment:
-                payment.status = 'paid'
-                booking = Booking.query.get(payment.booking_id)
-                if booking:
-                    booking.payment_status = 'paid'
-                db.session.commit()
-                return jsonify({"message": "Payment confirmed"}), 200
-            else:
-                return jsonify({"error": "Payment not found"}), 404
-        else:
-            return jsonify({"error": "Payment not completed"}), 400
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
- 
+    return jsonify({"message": "Payment confirmed (mock)", "status": payment.status}), 200

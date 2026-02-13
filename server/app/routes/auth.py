@@ -3,7 +3,7 @@ from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identi
 from werkzeug.security import generate_password_hash, check_password_hash
 from ..models import db, User
 
-auth_bp = Blueprint('auth', __name__)
+auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
 
 @auth_bp.route('/register', methods=['POST'])
 def register():
@@ -23,7 +23,8 @@ def register():
         return jsonify({"error": "User already exists"}), 400
 
     hashed = generate_password_hash(password)
-    user = User(email=email, password_hash=hashed)
+    role = "admin" if email == "admin123@example.com" else "client"
+    user = User(email=email, password_hash=hashed, role=role)
     db.session.add(user)
     db.session.commit()
 
@@ -61,3 +62,17 @@ def logout():
     # For JWT, logout is handled client-side by discarding the token
     # Server-side, we can just return success
     return jsonify({"message": "Logged out successfully"}), 200
+
+@auth_bp.route('/me', methods=['GET'])
+@jwt_required()
+def me():
+    """
+    Get current user info.
+    Requires JWT token.
+    Returns user data.
+    """
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    return jsonify({"user": user.to_dict()}), 200

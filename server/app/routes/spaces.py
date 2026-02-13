@@ -1,104 +1,116 @@
-from flask import Blueprint, request, jsonify
-from flask_jwt_extended import jwt_required, get_jwt_identity
-from ..models import db, Space
+from flask_jwt_extended import jwt_required, get_jwt
 
-spaces_bp = Blueprint('spaces', __name__)
+from app.extensions import db
+from app.models import Space
 
-@spaces_bp.route('/', methods=['GET'])
+spaces_bp = Blueprint("spaces", __name__, url_prefix="/spaces")
+
+
+def _require_admin():
+    claims = get_jwt()
+    if claims.get("role") != "admin":
+        return jsonify({"error": "admin access required"}), 403
+    return None
+
+
+# --------------------
+# PUBLIC ROUTES
+# --------------------
+
+@spaces_bp.get("")
 def get_spaces():
-    spaces = Space.query.all()
-    return jsonify([{
-        'id': s.id,
-        'name': s.name,
-        'description': s.description,
-        'owner_id': s.owner_id,
-        'price_per_hour': s.price_per_hour,
-        'created_at': s.created_at.isoformat()
-    } for s in spaces]), 200
+    spaces = Space.query.filter_by(is_active=True).all()
+    return jsonify([space.to_dict() for space in spaces]), 200
 
-@spaces_bp.route('/<int:space_id>', methods=['GET'])
+
+@spaces_bp.get("/<int:space_id>")
 def get_space(space_id):
-    space = Space.query.get(space_id)
-    if not space:
-        return jsonify({"error": "Space not found"}), 404
-    return jsonify({
-        'id': space.id,
-        'name': space.name,
-        'description': space.description,
-        'owner_id': space.owner_id,
-        'price_per_hour': space.price_per_hour,
-        'created_at': space.created_at.isoformat()
-    }), 200
+    space = Space.query.get_or_404(space_id)
+    if not space.is_active:
+        return jsonify({"error": "space not found"}), 404
+    return jsonify(space.to_dict()), 200
 
-@spaces_bp.route('/', methods=['POST'])
+
+# --------------------
+# ADMIN ROUTES
+# --------------------
+
+@spaces_bp.get("/admin")
+@jwt_required()
+def get_all_spaces():
+    denied = _require_admin()
+    if denied:
+        return denied
+
+    spaces = Space.query.all()
+    return jsonify([space.to_dict() for space in spaces]), 200
+
+
+@spaces_bp.post("/admin")
 @jwt_required()
 def create_space():
-    data = request.get_json()
-    name = data.get('name')
-    description = data.get('description')
-    price_per_hour = data.get('price_per_hour')
+    denied = _require_admin()
+    if denied:
+        return denied
 
-    if not name or not price_per_hour:
-        return jsonify({"error": "name and price_per_hour required"}), 400
+    data = request.get_json(silent=True) or {}
+
+    required_fields = ["name", "description", "price_per_hour", "capacity"]
+    for field in required_fields:
+        if field not in data:
+            return jsonify({"error": f"{field} is required"}), 400
 
     space = Space(
-        name=name,
-        description=description,
-        owner_id=int(get_jwt_identity()),
-        price_per_hour=price_per_hour
+        name=data["name"],
+        description=data["description"],
+        price_per_hour=float(data["price_per_hour"]),
+        image_url=data.get("image_url", ""),
+        capacity=int(data["capacity"]),
+        is_active=bool(data.get("is_active", True)),
     )
+
     db.session.add(space)
     db.session.commit()
 
-    return jsonify({
-        'id': space.id,
-        'name': space.name,
-        'description': space.description,
-        'owner_id': space.owner_id,
-        'price_per_hour': space.price_per_hour,
-        'created_at': space.created_at.isoformat()
-    }), 201
+    return jsonify(space.to_dict()), 201
 
-@spaces_bp.route('/<int:space_id>', methods=['PUT'])
+
+@spaces_bp.put("/admin/<int:space_id>")
 @jwt_required()
 def update_space(space_id):
-    space = Space.query.get(space_id)
-    if not space:
-        return jsonify({"error": "Space not found"}), 404
+    denied = _require_admin()
+    if denied:
+        return denied
 
-    if space.owner_id != get_jwt_identity():
-        return jsonify({"error": "Unauthorized"}), 403
+    space = Space.query.get_or_404(space_id)
+    data = request.get_json(silent=True) or {}
 
-    data = request.get_json()
-    if 'name' in data:
-        space.name = data['name']
-    if 'description' in data:
-        space.description = data['description']
-    if 'price_per_hour' in data:
-        space.price_per_hour = data['price_per_hour']
+    if "name" in data:
+        space.name = data["name"]
+    if "description" in data:
+        space.description = data["description"]
+    if "price_per_hour" in data:
+        space.price_per_hour = float(data["price_per_hour"])
+    if "image_url" in data:
+        space.image_url = data["image_url"]
+    if "capacity" in data:
+        space.capacity = int(data["capacity"])
+    if "is_active" in data:
+        space.is_active = bool(data["is_active"])
 
     db.session.commit()
+    return jsonify(space.to_dict()), 200
 
-    return jsonify({
-        'id': space.id,
-        'name': space.name,
-        'description': space.description,
-        'owner_id': space.owner_id,
-        'price_per_hour': space.price_per_hour,
-        'created_at': space.created_at.isoformat()
-    }), 200
 
-@spaces_bp.route('/<int:space_id>', methods=['DELETE'])
+@spaces_bp.delete("/admin/<int:space_id>")
 @jwt_required()
 def delete_space(space_id):
-    space = Space.query.get(space_id)
-    if not space:
-        return jsonify({"error": "Space not found"}), 404
+    denied = _require_admin()
+    if denied:
+        return denied
 
-    if space.owner_id != get_jwt_identity():
-        return jsonify({"error": "Unauthorized"}), 403
-
-    db.session.delete(space)
+    space = Space.query.get_or_404(space_id)
+    space.is_active = False
     db.session.commit()
 
-    return jsonify({"message": "Space deleted"}), 200
+    return jsonify({"message": "space deleted"}), 200
