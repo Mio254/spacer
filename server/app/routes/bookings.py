@@ -1,3 +1,4 @@
+# server/app/routes/bookings.py
 from datetime import datetime
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
@@ -7,6 +8,13 @@ from app.extensions import db
 from app.models import Booking, Space, Payment, Invoice
 
 bookings_bp = Blueprint("bookings", __name__, url_prefix="/api/bookings")
+
+
+def _as_int(value):
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
 
 
 def _parse_dt(value: str | None) -> datetime | None:
@@ -53,12 +61,14 @@ def _payment_info_for_booking(booking_id: int) -> tuple[str, int | None]:
 @bookings_bp.get("/me")
 @jwt_required()
 def my_bookings():
-    user_id = int(get_jwt_identity())
+    uid = _as_int(get_jwt_identity())
+    if uid is None:
+        return jsonify({"error": "invalid token identity"}), 401
 
     rows = (
         db.session.query(Booking, Space)
         .join(Space, Space.id == Booking.space_id)
-        .filter(Booking.user_id == user_id)
+        .filter(Booking.user_id == uid)
         .order_by(Booking.id.desc())
         .all()
     )
@@ -66,21 +76,20 @@ def my_bookings():
     bookings = []
     for b, s in rows:
         payment_status, invoice_id = _payment_info_for_booking(b.id)
-
         bookings.append(
             {
                 "id": b.id,
                 "user_id": b.user_id,
                 "space_id": b.space_id,
                 "space_name": s.name,
-                "location": s.location,
+                "location": getattr(s, "location", None),
                 "start_time": b.start_time.isoformat() if b.start_time else None,
                 "end_time": b.end_time.isoformat() if b.end_time else None,
                 "duration": b.duration,
                 "total_cost": b.total_cost,
-                "status": b.status,  # confirmed|cancelled
-                "payment_status": payment_status,  # paid|unpaid|stripe status
-                "invoice_id": invoice_id,  # ✅ NEW
+                "status": b.status,
+                "payment_status": payment_status,
+                "invoice_id": invoice_id,
             }
         )
 
@@ -113,17 +122,19 @@ def check_availability(space_id: int):
 @bookings_bp.delete("/<int:booking_id>")
 @jwt_required()
 def delete_booking(booking_id: int):
-    user_id = int(get_jwt_identity())
-    booking = db.session.get(Booking, booking_id)
+    uid = _as_int(get_jwt_identity())
+    if uid is None:
+        return jsonify({"error": "invalid token identity"}), 401
 
+    booking = db.session.get(Booking, booking_id)
     if not booking:
         return jsonify({"error": "Booking not found"}), 404
 
-    if int(booking.user_id) != user_id:
+    if _as_int(booking.user_id) != uid:
         return jsonify({"error": "Unauthorized"}), 403
 
     payment_status, _invoice_id = _payment_info_for_booking(booking_id)
-    if payment_status == "paid":
+    if str(payment_status).lower() == "paid":
         return jsonify({"error": "Cannot delete a paid booking"}), 400
 
     db.session.delete(booking)
@@ -135,7 +146,10 @@ def delete_booking(booking_id: int):
 @bookings_bp.post("")
 @jwt_required()
 def create_booking():
-    user_id = int(get_jwt_identity())
+    uid = _as_int(get_jwt_identity())
+    if uid is None:
+        return jsonify({"error": "invalid token identity"}), 401
+
     data = request.get_json(silent=True) or {}
 
     space_id = data.get("space_id")
@@ -166,7 +180,7 @@ def create_booking():
     total_cost = int(round(float(space.price_per_hour) * hours))
 
     booking = Booking(
-        user_id=user_id,
+        user_id=uid,
         space_id=space.id,
         start_time=start_time,
         end_time=end_time,
@@ -177,4 +191,9 @@ def create_booking():
     db.session.add(booking)
     db.session.commit()
 
-    return jsonify({"booking": {**booking.to_dict(), "payment_status": "unpaid", "invoice_id": None}}), 201
+    return (
+        jsonify(
+          {"booking": {**booking.to_dict(), "payment_status": "unpaid", "invoice_id": None}}
+        ),
+        201,
+    )
