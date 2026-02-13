@@ -43,21 +43,26 @@ function AdminSpacesPage() {
     }
 
     try {
+      const payload = {
+        name: name.trim(),
+        price_per_hour: parseFloat(price),
+        capacity: parseInt(capacity),
+        location: location.trim(),
+        image_url: imageUrl.trim() || '',
+        description: "New space",
+        is_active: true
+      };
+
+      console.log('Sending:', payload);
+
       const res = await fetch(`${API_URL}/admin/spaces`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: name.trim(),
-          price_per_hour: parseFloat(price),
-          capacity: parseInt(capacity),
-          location: location.trim(),
-          image_url: imageUrl.trim() || '',
-          description: "New space",
-          is_active: true
-        }),
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json();
+      console.log('Response:', data);
       
       if (!res.ok) {
         const errorMsg = data.errors 
@@ -66,6 +71,7 @@ function AdminSpacesPage() {
         throw new Error(errorMsg);
       }
 
+      alert('Space added successfully!');
       await loadSpaces();
       setName('');
       setPrice('');
