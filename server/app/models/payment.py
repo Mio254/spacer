@@ -14,7 +14,7 @@ class Payment(db.Model):
         db.Integer, db.ForeignKey("users.id"), nullable=False, index=True
     )
 
-    # Store money in smallest unit (KES cents). For KES 1,500.00 => 150000
+    
     amount_minor = db.Column(db.Integer, nullable=False)
     currency = db.Column(db.String(3), nullable=False, default="kes")
 
@@ -23,12 +23,11 @@ class Payment(db.Model):
         nullable=False,
         default="requires_payment_method",
     )
-    # typical statuses:
-    # requires_payment_method | requires_confirmation | processing | succeeded | canceled | failed
+ 
 
     stripe_payment_intent_id = db.Column(db.String(255), nullable=False, unique=True, index=True)
 
-    # Optional: link to invoice once created
+    
     invoice_id = db.Column(db.Integer, db.ForeignKey("invoices.id"), nullable=True, index=True)
 
     created_at = db.Column(

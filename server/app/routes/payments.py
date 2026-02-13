@@ -39,7 +39,7 @@ def create_payment_intent():
     # If already invoiced, treat as paid
     existing_invoice = Invoice.query.filter_by(booking_id=booking.id, user_id=user_id).first()
     if existing_invoice:
-        # Optional: keep payment table consistent (best-effort)
+        
         try:
             existing_payment = (
                 Payment.query.filter_by(booking_id=booking.id, user_id=user_id)
@@ -56,7 +56,7 @@ def create_payment_intent():
 
     _init_stripe()
 
-    # booking.total_cost is major KES (e.g. 1500)
+    
     try:
         amount_kes = int(booking.total_cost)
     except (TypeError, ValueError):
@@ -126,7 +126,7 @@ def confirm_payment(payment_intent_id: str):
     user_id = int(get_jwt_identity())
     _init_stripe()
 
-    # Stripe source of truth
+    
     try:
         intent = stripe.PaymentIntent.retrieve(payment_intent_id)
     except StripeError as e:

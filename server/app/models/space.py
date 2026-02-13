@@ -15,7 +15,7 @@ class Space(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    # Optional fields you added earlier
+    
     location = db.Column(db.String(200))
     max_capacity = db.Column(db.Integer)
     operating_hours = db.Column(db.String(100))
