@@ -32,6 +32,7 @@ def create_space():
         image_url=data.get('image_url', ''),
         capacity=int(data['capacity']),
         location=data.get('location', ''),
+        amenities=data.get('amenities', ''),
         is_active=bool(data.get('is_active', True)),
     )
 
@@ -57,11 +58,39 @@ def update_space(space_id):
         space.capacity = int(data['capacity'])
     if 'location' in data:
         space.location = data['location']
+    if 'amenities' in data:
+        space.amenities = data['amenities']
     if 'is_active' in data:
         space.is_active = bool(data['is_active'])
 
     db.session.commit()
     return jsonify(space.to_dict()), 200
+
+@spaces_bp.post('/admin/spaces/bulk')
+def bulk_action():
+    data = request.get_json(silent=True) or {}
+    space_ids = data.get('space_ids', [])
+    action = data.get('action', '')
+    
+    if not space_ids or not action:
+        return jsonify({"error": "space_ids and action required"}), 400
+    
+    spaces = Space.query.filter(Space.id.in_(space_ids)).all()
+    
+    if action == 'activate':
+        for space in spaces:
+            space.is_active = True
+    elif action == 'deactivate':
+        for space in spaces:
+            space.is_active = False
+    elif action == 'delete':
+        for space in spaces:
+            db.session.delete(space)
+    else:
+        return jsonify({"error": "Invalid action"}), 400
+    
+    db.session.commit()
+    return jsonify({"message": f"{len(spaces)} spaces {action}d"}), 200
 
 @spaces_bp.delete('/admin/spaces/<int:space_id>')
 def delete_space(space_id):
