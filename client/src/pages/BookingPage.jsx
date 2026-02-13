@@ -7,7 +7,7 @@ export default function BookingPage() {
   const { id } = useParams();
 
   const [space, setSpace] = useState(null);
-  const [status, setStatus] = useState("loading"); // loading|succeeded|failed
+  const [status, setStatus] = useState("loading"); 
   const [error, setError] = useState(null);
 
   useEffect(() => {

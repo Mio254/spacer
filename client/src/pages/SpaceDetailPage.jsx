@@ -1,128 +1,154 @@
-import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
-import { spaceService } from "../services/spaceService";
-import BookingForm from "../components/bookings/BookingForm";
+import { useState, useEffect } from 'react';
+import { useParams, Link } from 'react-router-dom';
+import './SpaceDetailPage.css';
+
+const API_URL = 'http://localhost:5001/api';
 
 export default function SpaceDetailPage() {
   const { id } = useParams();
-
   const [space, setSpace] = useState(null);
-  const [status, setStatus] = useState("loading"); 
-  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [selectedDate, setSelectedDate] = useState('');
+  const [startTime, setStartTime] = useState('09:00');
+  const [endTime, setEndTime] = useState('10:00');
 
   useEffect(() => {
-    setStatus("loading");
-    setError(null);
-
-    spaceService
-      .getSpace(id)
-      .then((data) => {
-        
-        const s = data?.space ?? data;
-        setSpace(s);
-        setStatus("succeeded");
+    fetch(`${API_URL}/spaces/${id}`)
+      .then(res => res.json())
+      .then(data => {
+        setSpace(data);
+        setLoading(false);
       })
-      .catch((e) => {
-        setError(e.message);
-        setStatus("failed");
+      .catch(err => {
+        setError(err.message);
+        setLoading(false);
       });
   }, [id]);
 
-  if (status === "loading") {
-    return (
-      <div className="mx-auto max-w-6xl p-4">
-        <div className="rounded-xl border border-gray-200 bg-white p-6 text-gray-700">
-          Loading space details...
-        </div>
-      </div>
-    );
-  }
+  const calculateTotal = () => {
+    if (!space || !startTime || !endTime) return 0;
+    const start = parseInt(startTime.split(':')[0]);
+    const end = parseInt(endTime.split(':')[0]);
+    const hours = Math.max(1, end - start);
+    return space.price_per_hour * hours;
+  };
 
-  if (status === "failed") {
-    return (
-      <div className="mx-auto max-w-6xl p-4">
-        <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-red-700">
-          Error: {error}
-        </div>
-        <Link to="/spaces" className="mt-4 inline-block text-sm font-semibold text-blue-600 hover:underline">
-          ← Back to spaces
-        </Link>
-      </div>
-    );
-  }
+  const handleBooking = () => {
+    const totalPrice = calculateTotal();
+    alert(`Booking requested for ${space.name}\nDate: ${selectedDate}\nTime: ${startTime} - ${endTime}\nTotal: KSH ${totalPrice}\nLocation: ${space.location}`);
+  };
 
-  if (!space) {
-    return (
-      <div className="mx-auto max-w-6xl p-4">
-        <div className="rounded-xl border border-gray-200 bg-white p-6 text-gray-700">
-          Space not found.
-        </div>
-        <Link to="/spaces" className="mt-4 inline-block text-sm font-semibold text-blue-600 hover:underline">
-          ← Back to spaces
-        </Link>
-      </div>
-    );
-  }
-
-  const imageUrl =
-    space.image_url ||
-    "https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1600&q=80";
-
-  const capacity = space.max_capacity ?? space.capacity ?? "—";
+  if (loading) return <div className="loading">Loading space details...</div>;
+  if (error) return <div className="error">Error: {error}</div>;
+  if (!space) return <div>Space not found</div>;
 
   return (
-    <div className="mx-auto max-w-6xl p-4">
-      <Link to="/spaces" className="mb-4 inline-block text-sm font-semibold text-blue-600 hover:underline">
-        ← Back to spaces
-      </Link>
-
-      <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-        <div className="relative">
-          <img src={imageUrl} alt={space.name} className="h-72 w-full object-cover md:h-96" />
-          <div className="absolute bottom-4 left-4 rounded-full bg-black/70 px-4 py-2 text-sm font-semibold text-white">
-            📍 {space.location || "Nairobi"}
-          </div>
+    <div className="space-detail-container">
+      <div className="space-image-section">
+        <img 
+          src={space.image_url || 'https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=800'} 
+          alt={space.name} 
+          className="space-main-image"
+        />
+        <div className="image-overlay">
+          <span className="location-badge">📍 {space.location}</span>
         </div>
+      </div>
 
-        <div className="grid gap-6 p-6 md:grid-cols-3">
-          {/* Left content */}
-          <div className="md:col-span-2">
-            <h1 className="text-3xl font-bold text-gray-900">{space.name}</h1>
-            <p className="mt-2 text-gray-600">{space.description || "No description provided."}</p>
+      <div className="space-content">
+        <h1 className="space-title">{space.name}</h1>
 
-            <div className="mt-6 grid gap-3 sm:grid-cols-3">
-              <InfoCard label="Hourly Rate" value={`KSH ${space.price_per_hour}/hr`} icon="💰" />
-              <InfoCard label="Capacity" value={`${capacity} people`} icon="👥" />
-              <InfoCard label="Hours" value={space.operating_hours || "Flexible"} icon="🕒" />
+        <div className="space-highlights">
+          <div className="highlight-card">
+            <span className="highlight-icon">💰</span>
+            <div>
+              <div className="highlight-label">Hourly Rate</div>
+              <div className="highlight-value">KSH {space.price_per_hour}/hr</div>
             </div>
           </div>
 
-          {/* Booking panel */}
-          <div className="md:col-span-1">
-            <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
-              <h2 className="text-lg font-semibold text-gray-900">Book this space</h2>
-              <p className="mt-1 text-sm text-gray-600">
-                Select start/end date-time, check availability, then confirm.
-              </p>
+          <div className="highlight-card">
+            <span className="highlight-icon">👥</span>
+            <div>
+              <div className="highlight-label">Maximum Capacity</div>
+              <div className="highlight-value">{space.max_capacity || space.capacity} people</div>
+            </div>
+          </div>
 
-              <div className="mt-4">
-                <BookingForm spaceId={space.id} pricePerHour={space.price_per_hour} />
+          <div className="highlight-card">
+            <span className="highlight-icon">🕒</span>
+            <div>
+              <div className="highlight-label">Operating Hours</div>
+              <div className="highlight-value">{space.operating_hours || 'Flexible'}</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="space-description">
+          <h2>About This Space</h2>
+          <p>{space.description}</p>
+        </div>
+
+        <div className="booking-section">
+          <h2>Book This Space</h2>
+
+          <div className="booking-form">
+            <div className="form-group">
+              <label>Select Date</label>
+              <input 
+                type="date" 
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                min={new Date().toISOString().split('T')[0]}
+                required
+              />
+            </div>
+
+            <div className="time-selection">
+              <div className="form-group">
+                <label>Start Time</label>
+                <select value={startTime} onChange={(e) => setStartTime(e.target.value)}>
+                  {['08:00','09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00'].map(time => (
+                    <option key={time} value={time}>{time}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label>End Time</label>
+                <select value={endTime} onChange={(e) => setEndTime(e.target.value)}>
+                  {['09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00','19:00','20:00'].map(time => (
+                    <option key={time} value={time}>{time}</option>
+                  ))}
+                </select>
               </div>
             </div>
+
+            <div className="price-summary">
+              <div className="price-row">
+                <span>Hourly Rate:</span>
+                <span>KSH {space.price_per_hour}</span>
+              </div>
+              <div className="price-row">
+                <span>Duration:</span>
+                <span>{parseInt(endTime.split(':')[0]) - parseInt(startTime.split(':')[0])} hours</span>
+              </div>
+              <div className="price-total">
+                <span>Total Amount:</span>
+                <span className="total-price">KSH {calculateTotal()}</span>
+              </div>
+            </div>
+
+            <button 
+              className="book-button"
+              onClick={handleBooking}
+              disabled={!selectedDate}
+            >
+              📅 Book Now for KSH {calculateTotal()}
+            </button>
           </div>
         </div>
-      </div>
-    </div>
-  );
-}
-
-function InfoCard({ label, value, icon }) {
-  return (
-    <div className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white p-4">
-      <div className="text-2xl">{icon}</div>
-      <div>
-        <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">{label}</div>
-        <div className="text-sm font-bold text-gray-900">{value}</div>
       </div>
     </div>
   );

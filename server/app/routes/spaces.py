@@ -1,62 +1,38 @@
 from flask import Blueprint, request, jsonify
-from flask_jwt_extended import jwt_required, get_jwt
-
 from app.extensions import db
 from app.models import Space
 
-spaces_bp = Blueprint("spaces", __name__, url_prefix="/api")
+spaces_bp = Blueprint('spaces', __name__, url_prefix='/api')
 
-
-def _require_admin():
-    claims = get_jwt()
-    if claims.get("role") != "admin":
-        return jsonify({"error": "admin access required"}), 403
-    return None
-
-
-# --------------------
-# PUBLIC ROUTES
-# --------------------
-
-@spaces_bp.get("/spaces")
+@spaces_bp.get('/spaces')
 def get_spaces():
     spaces = Space.query.filter_by(is_active=True).all()
     return jsonify([space.to_dict() for space in spaces]), 200
 
-
-@spaces_bp.get("/spaces/<int:space_id>")
+@spaces_bp.get('/spaces/<int:space_id>')
 def get_space(space_id):
     space = Space.query.get_or_404(space_id)
     if not space.is_active:
         return jsonify({"error": "space not found"}), 404
     return jsonify(space.to_dict()), 200
 
+@spaces_bp.get('/admin/spaces')
+def get_all_spaces():
+    spaces = Space.query.all()
+    return jsonify([space.to_dict() for space in spaces]), 200
 
-# --------------------
-# ADMIN ROUTES
-# --------------------
-
-@spaces_bp.post("/admin/spaces")
-@jwt_required()
+@spaces_bp.post('/admin/spaces')
 def create_space():
-    denied = _require_admin()
-    if denied:
-        return denied
-
     data = request.get_json(silent=True) or {}
 
-    required_fields = ["name", "description", "price_per_hour", "capacity"]
-    for field in required_fields:
-        if field not in data:
-            return jsonify({"error": f"{field} is required"}), 400
-
     space = Space(
-        name=data["name"],
-        description=data["description"],
-        price_per_hour=float(data["price_per_hour"]),
-        image_url=data.get("image_url", ""),
-        capacity=int(data["capacity"]),
-        is_active=bool(data.get("is_active", True)),
+        name=data['name'],
+        description=data.get('description', ''),
+        price_per_hour=float(data['price_per_hour']),
+        image_url=data.get('image_url', ''),
+        capacity=int(data['capacity']),
+        location=data.get('location', ''),
+        is_active=bool(data.get('is_active', True)),
     )
 
     db.session.add(space)
@@ -64,41 +40,57 @@ def create_space():
 
     return jsonify(space.to_dict()), 201
 
-
-@spaces_bp.put("/admin/spaces/<int:space_id>")
-@jwt_required()
+@spaces_bp.put('/admin/spaces/<int:space_id>')
 def update_space(space_id):
-    denied = _require_admin()
-    if denied:
-        return denied
-
     space = Space.query.get_or_404(space_id)
     data = request.get_json(silent=True) or {}
 
-    if "name" in data:
-        space.name = data["name"]
-    if "description" in data:
-        space.description = data["description"]
-    if "price_per_hour" in data:
-        space.price_per_hour = float(data["price_per_hour"])
-    if "image_url" in data:
-        space.image_url = data["image_url"]
-    if "capacity" in data:
-        space.capacity = int(data["capacity"])
-    if "is_active" in data:
-        space.is_active = bool(data["is_active"])
+    if 'name' in data:
+        space.name = data['name']
+    if 'description' in data:
+        space.description = data['description']
+    if 'price_per_hour' in data:
+        space.price_per_hour = float(data['price_per_hour'])
+    if 'image_url' in data:
+        space.image_url = data['image_url']
+    if 'capacity' in data:
+        space.capacity = int(data['capacity'])
+    if 'location' in data:
+        space.location = data['location']
+    if 'is_active' in data:
+        space.is_active = bool(data['is_active'])
 
     db.session.commit()
     return jsonify(space.to_dict()), 200
 
+@spaces_bp.post('/admin/spaces/bulk')
+def bulk_action():
+    data = request.get_json(silent=True) or {}
+    space_ids = data.get('space_ids', [])
+    action = data.get('action', '')
+    
+    if not space_ids or not action:
+        return jsonify({"error": "space_ids and action required"}), 400
+    
+    spaces = Space.query.filter(Space.id.in_(space_ids)).all()
+    
+    if action == 'activate':
+        for space in spaces:
+            space.is_active = True
+    elif action == 'deactivate':
+        for space in spaces:
+            space.is_active = False
+    elif action == 'delete':
+        for space in spaces:
+            db.session.delete(space)
+    else:
+        return jsonify({"error": "Invalid action"}), 400
+    
+    db.session.commit()
+    return jsonify({"message": f"{len(spaces)} spaces {action}d"}), 200
 
-@spaces_bp.delete("/admin/spaces/<int:space_id>")
-@jwt_required()
+@spaces_bp.delete('/admin/spaces/<int:space_id>')
 def delete_space(space_id):
-    denied = _require_admin()
-    if denied:
-        return denied
-
     space = Space.query.get_or_404(space_id)
     space.is_active = False
     db.session.commit()

@@ -8,7 +8,7 @@ export default function ProtectedRoute({ roles, children, redirectTo = "/login" 
   if (!token) return <Navigate to={redirectTo} replace />;
 
   if (roles?.length) {
-    if (!user) return null; // optional: spinner
+    if (!user) return null; 
     if (!roles.includes(user.role)) return <Navigate to="/" replace />;
   }
 

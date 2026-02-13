@@ -1,146 +1,238 @@
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { apiFetch } from "../api/client";
 
-function PaymentBadge({ status }) {
-  const s = String(status || "unpaid").toLowerCase();
-  const paid = s === "paid";
-
-  return (
-    <span
-      className={[
-        "inline-flex items-center rounded-full px-2 py-1 text-xs font-semibold",
-        paid ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700",
-      ].join(" ")}
-      title={paid ? "Payment received" : "Payment pending"}
-    >
-      {paid ? "Paid" : "Unpaid"}
-    </span>
-  );
+function fmt(dt) {
+  if (!dt) return "";
+  const d = new Date(dt);
+  if (Number.isNaN(d.getTime())) return String(dt);
+  return new Intl.DateTimeFormat("en-KE", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(d);
 }
 
+function formatRange(b) {
+  const start = b.start_time || b.start_date || b.start || b.from;
+  const end = b.end_time || b.end_date || b.end || b.to;
+  if (!start && !end) return "—";
+  if (start && end) return `${fmt(start)} → ${fmt(end)}`;
+  return fmt(start || end);
+}
+
+const money = (n) =>
+  n == null || n === "" || Number.isNaN(Number(n))
+    ? "—"
+    : `KES ${Number(n).toLocaleString("en-KE")}`;
+
 export default function MyBookings() {
+  const navigate = useNavigate();
   const { token } = useSelector((s) => s.auth);
 
-  const [items, setItems] = useState([]);
-  const [status, setStatus] = useState("idle");
-  const [error, setError] = useState(null);
+  const [bookings, setBookings] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState("");
+  const [deletingId, setDeletingId] = useState(null);
 
   useEffect(() => {
-    if (!token) return;
-    setStatus("loading");
-    setError(null);
+    let alive = true;
 
-    apiFetch("/api/bookings/me", { token })
-      .then((data) => {
-        setItems(data.bookings || []);
-        setStatus("succeeded");
-      })
-      .catch((e) => {
-        setError(e.message);
-        setStatus("failed");
-      });
+    if (!token) {
+      setBookings([]);
+      setLoading(false);
+      setErr("Please log in to view your bookings.");
+      return () => {
+        alive = false;
+      };
+    }
+
+    (async () => {
+      try {
+        setErr("");
+        setLoading(true);
+
+        const data = await apiFetch("/api/bookings/me", { token });
+
+        if (!alive) return;
+
+        const list = data?.bookings || [];
+        setBookings(Array.isArray(list) ? list : []);
+      } catch (e) {
+        if (!alive) return;
+        setErr(e?.message || "Failed to load bookings");
+      } finally {
+        if (alive) setLoading(false);
+      }
+    })();
+
+    return () => {
+      alive = false;
+    };
   }, [token]);
 
-  const totals = useMemo(() => {
-    const totalBookings = items.length;
-    const paidCount = items.filter((b) => String(b.payment_status).toLowerCase() === "paid").length;
-    const unpaidCount = totalBookings - paidCount;
-    const totalSpend = items.reduce((sum, b) => sum + (Number(b.total_cost) || 0), 0);
-    return { totalBookings, paidCount, unpaidCount, totalSpend };
-  }, [items]);
+  const sorted = useMemo(() => {
+    return [...bookings].sort((a, b) => (b?.id ?? 0) - (a?.id ?? 0));
+  }, [bookings]);
+
+  async function handleDelete(bookingId) {
+    const ok = window.confirm("Delete this booking? This cannot be undone.");
+    if (!ok) return;
+
+    const prev = bookings;
+    setBookings((cur) => cur.filter((b) => b.id !== bookingId));
+    setDeletingId(bookingId);
+
+    try {
+      await apiFetch(`/api/bookings/${bookingId}`, {
+        method: "DELETE",
+        token,
+      });
+    } catch (e) {
+      setBookings(prev);
+      setErr(e?.message || "Failed to delete booking");
+    } finally {
+      setDeletingId(null);
+    }
+  }
 
   return (
-    <div className="mx-auto max-w-6xl p-6">
-      <div className="mb-4 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+    <div className="mx-auto max-w-6xl px-4 py-8">
+      <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">My Bookings</h1>
-          <p className="mt-1 text-sm text-gray-600">Your recent bookings and payment status.</p>
+          <h1 className="text-2xl font-extrabold text-gray-900">My Bookings</h1>
+          <p className="mt-1 text-sm text-gray-600">Manage your bookings and payments.</p>
         </div>
 
-        {token && status === "succeeded" && (
-          <div className="flex flex-wrap gap-2">
-            <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">
-              Total: {totals.totalBookings}
-            </span>
-            <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700">
-              Paid: {totals.paidCount}
-            </span>
-            <span className="rounded-full bg-yellow-100 px-3 py-1 text-xs font-semibold text-yellow-700">
-              Unpaid: {totals.unpaidCount}
-            </span>
-            <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">
-              Spend: KSH {totals.totalSpend}
-            </span>
-          </div>
-        )}
+        <Link
+          to="/spaces"
+          className="inline-flex w-fit rounded-xl bg-gray-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-black"
+        >
+          Book a new space
+        </Link>
       </div>
 
-      {!token && (
-        <div className="rounded-2xl border border-gray-200 bg-white p-6 text-gray-700 shadow-sm">
-          Please log in to see your bookings.
+      {err && (
+        <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          {err}
+          {!token && (
+            <div className="mt-3">
+              <button
+                type="button"
+                onClick={() => navigate("/login")}
+                className="rounded-xl bg-gray-900 px-4 py-2 text-sm font-semibold text-white hover:bg-black"
+              >
+                Go to Login
+              </button>
+            </div>
+          )}
         </div>
       )}
 
-      {token && status === "loading" && (
-        <div className="rounded-2xl border border-gray-200 bg-white p-6 text-gray-700 shadow-sm">
-          Loading bookings…
+      {loading ? (
+        <div className="mt-8 space-y-3">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="h-16 animate-pulse rounded-2xl border border-gray-200 bg-white" />
+          ))}
         </div>
-      )}
-
-      {token && status === "failed" && (
-        <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-red-700">
-          Error: {error}
+      ) : sorted.length === 0 ? (
+        <div className="mt-8 rounded-2xl border border-gray-200 bg-white p-8 text-center shadow-sm">
+          <div className="text-lg font-bold text-gray-900">No bookings yet</div>
+          <p className="mt-2 text-sm text-gray-600">Go to Spaces and book your first one.</p>
+          <Link
+            to="/spaces"
+            className="mt-5 inline-flex rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700"
+          >
+            Browse spaces
+          </Link>
         </div>
-      )}
-
-      {token && status === "succeeded" && items.length === 0 && (
-        <div className="rounded-2xl border border-gray-200 bg-white p-6 text-gray-700 shadow-sm">
-          You don’t have any bookings yet.
-        </div>
-      )}
-
-      {token && status === "succeeded" && items.length > 0 && (
-        <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-          <div className="grid grid-cols-12 gap-2 border-b bg-gray-50 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-600">
-            <div className="col-span-2">Booking</div>
+      ) : (
+        <div className="mt-8 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+          <div className="grid grid-cols-12 gap-3 border-b border-gray-200 bg-gray-50 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500">
             <div className="col-span-4">Space</div>
-            <div className="col-span-2">Payment</div>
-            <div className="col-span-2">Start</div>
-            <div className="col-span-2">End</div>
+            <div className="col-span-3">Time</div>
+            <div className="col-span-2 text-right">Total</div>
+            <div className="col-span-1 text-center">Payment</div>
+            <div className="col-span-2 text-right">Actions</div>
           </div>
 
-          <ul className="divide-y">
-            {items.map((b) => (
-              <li key={b.id} className="grid grid-cols-12 gap-2 px-4 py-4 text-sm text-gray-800">
-                <div className="col-span-2 font-semibold">#{b.id}</div>
+          <div className="divide-y divide-gray-200">
+            {sorted.map((b) => {
+              const spaceName = b.space_name || `Space #${b.space_id ?? "—"}`;
+              const total = b.total_cost ?? null;
+              const isPaid = String(b.payment_status || "").toLowerCase() === "paid";
 
-                <div className="col-span-4">
-                  <div className="font-semibold">{b.space_name || `Space #${b.space_id}`}</div>
-                  {b.location && <div className="text-xs text-gray-500">📍 {b.location}</div>}
-                  {b.total_cost != null && (
-                    <div className="mt-1 text-xs font-semibold text-gray-700">KSH {b.total_cost}</div>
-                  )}
+              return (
+                <div key={b.id} className="grid grid-cols-12 items-center gap-3 px-4 py-4">
+                  <div className="col-span-12 md:col-span-4">
+                    <div className="font-semibold text-gray-900">{spaceName}</div>
+                    <div className="mt-1 text-xs text-gray-600">Booking ID: {b.id}</div>
+                  </div>
+
+                  <div className="col-span-12 md:col-span-3">
+                    <div className="text-sm text-gray-800">{formatRange(b)}</div>
+                    {b.duration != null && (
+                      <div className="mt-1 text-xs text-gray-600">Duration: {b.duration} min</div>
+                    )}
+                  </div>
+
+                  <div className="col-span-6 md:col-span-2 md:text-right">
+                    <div className="text-sm font-semibold text-gray-900">{money(total)}</div>
+                  </div>
+
+                  <div className="col-span-6 md:col-span-1 text-center">
+                    <span
+                      className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${
+                        isPaid ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"
+                      }`}
+                    >
+                      {isPaid ? "Paid" : "Unpaid"}
+                    </span>
+                  </div>
+
+                  <div className="col-span-12 md:col-span-2 md:text-right">
+                    <div className="flex flex-wrap justify-end gap-2">
+                      {!isPaid && (
+                        <Link
+                          to={`/checkout/${b.id}`}
+                          className="rounded-xl bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+                        >
+                          Pay
+                        </Link>
+                      )}
+
+                      {!isPaid && (
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(b.id)}
+                          disabled={deletingId === b.id}
+                          className="rounded-xl border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:opacity-60"
+                        >
+                          {deletingId === b.id ? "Deleting…" : "Delete"}
+                        </button>
+                      )}
+
+                      {isPaid &&
+                        (b.invoice_id ? (
+                          <Link
+                            to={`/invoices/${b.invoice_id}`}
+                            className="rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-100"
+                          >
+                            View Invoice
+                          </Link>
+                        ) : (
+                          <span className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm font-semibold text-gray-400">
+                            Invoice pending
+                          </span>
+                        ))}
+                    </div>
+                  </div>
                 </div>
-
-                <div className="col-span-2">
-                  <PaymentBadge status={b.payment_status} />
-                </div>
-
-                
-                <div className="col-span-2">{fmt(b.start_time)}</div>
-                <div className="col-span-2">{fmt(b.end_time)}</div>
-              </li>
-            ))}
-          </ul>
+              );
+            })}
+          </div>
         </div>
       )}
     </div>
   );
-}
-
-function fmt(v) {
-  if (!v) return "—";
-  const d = new Date(v);
-  return Number.isNaN(d.getTime()) ? v : d.toLocaleString();
 }

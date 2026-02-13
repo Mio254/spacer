@@ -33,166 +33,191 @@ function Home() {
   }, []);
 
   return (
-    <div className="mx-auto max-w-6xl p-6">
-      <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-        <h1 className="text-3xl font-bold text-gray-900">Spacer</h1>
-        <p className="mt-1 text-gray-600">Space booking demo (Vite + React + Flask + JWT)</p>
-
-        <div className="mt-6 grid gap-4 md:grid-cols-2">
-          <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-            <div className="text-sm font-semibold text-gray-900">Backend health</div>
-            {error && <p className="mt-2 text-sm text-red-600">Error: {error}</p>}
-            {health ? (
-              <pre className="mt-2 overflow-auto rounded-lg bg-white p-3 text-xs text-gray-800">
-                {JSON.stringify(health, null, 2)}
-              </pre>
-            ) : (
-              <p className="mt-2 text-sm text-gray-600">Checking backend connection…</p>
-            )}
-          </div>
-
-          <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-            <div className="text-sm font-semibold text-gray-900">Auth</div>
-            {token ? (
-              <pre className="mt-2 overflow-auto rounded-lg bg-white p-3 text-xs text-gray-800">
-                {JSON.stringify(user, null, 2)}
-              </pre>
-            ) : (
-              <p className="mt-2 text-sm text-gray-600">Not logged in.</p>
-            )}
-            <div className="mt-3 flex gap-2">
-              <Link to="/spaces" className="rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-700">
-                Browse spaces
-              </Link>
-              {!token && (
-                <Link to="/login" className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-semibold text-gray-800 hover:bg-gray-50">
-                  Login
-                </Link>
-              )}
-            </div>
-          </div>
+    <div style={{ padding: "2rem" }}>
+      <h1>Welcome to Spacer</h1>
+      {error && <p style={{ color: "red" }}>Error: {error}</p>}
+      {health && (
+        <div>
+          <p>API Status: {health.status}</p>
+          <p>Message: {health.message}</p>
         </div>
-      </div>
+      )}
+      {user && <p>Logged in as: {user.email}</p>}
     </div>
   );
 }
 
-function NavItem({ to, children }) {
-  return (
-    <NavLink
-      to={to}
-      className={({ isActive }) =>
-        `rounded-lg px-3 py-2 text-sm font-semibold ${
-          isActive ? "bg-gray-900 text-white" : "text-gray-700 hover:bg-gray-100"
-        }`
-      }
-    >
-      {children}
-    </NavLink>
-  );
-}
-
-export default function App() {
+function App() {
   const dispatch = useDispatch();
-  const { token, user } = useSelector((s) => s.auth);
+  const { user, token } = useSelector((s) => s.auth);
 
   useEffect(() => {
-    if (token && !user) dispatch(fetchMe());
-  }, [dispatch, token, user]);
+    if (token) {
+      dispatch(fetchMe());
+    }
+  }, [token, dispatch]);
+
+  const handleLogout = () => {
+    dispatch(logout());
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="sticky top-0 z-10 border-b border-gray-200 bg-white/80 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center gap-2 px-4 py-3">
-          <Link to="/" className="mr-2 flex items-center gap-2">
-            <div className="grid h-9 w-9 place-items-center rounded-xl bg-gray-900 text-white font-black">S</div>
-            <span className="text-lg font-bold text-gray-900">Spacer</span>
-          </Link>
-
-          <nav className="flex flex-1 items-center gap-2">
-            <NavItem to="/spaces">Spaces</NavItem>
-            {token && <NavItem to="/bookings">My Bookings</NavItem>}
-            {user?.role === "admin" && <NavItem to="/admin/users">Admin</NavItem>}
-          </nav>
-
-          <div className="flex items-center gap-2">
-            {!token ? (
-              <>
-                <Link to="/login" className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-semibold text-gray-800 hover:bg-gray-50">
-                  Login
-                </Link>
-                <Link to="/register" className="rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-700">
-                  Register
-                </Link>
-              </>
-            ) : (
+    <div>
+      <nav
+        style={{
+          background: "#1a1a1a",
+          padding: "1rem 2rem",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
+        <div style={{ display: "flex", gap: "2rem", alignItems: "center" }}>
+          <NavLink
+            to="/"
+            style={({ isActive }) => ({
+              color: isActive ? "#4CAF50" : "white",
+              textDecoration: "none",
+              fontWeight: isActive ? "bold" : "normal",
+            })}
+          >
+            Home
+          </NavLink>
+          <NavLink
+            to="/spaces"
+            style={({ isActive }) => ({
+              color: isActive ? "#4CAF50" : "white",
+              textDecoration: "none",
+              fontWeight: isActive ? "bold" : "normal",
+            })}
+          >
+            Spaces
+          </NavLink>
+          {user && (
+            <NavLink
+              to="/my-bookings"
+              style={({ isActive }) => ({
+                color: isActive ? "#4CAF50" : "white",
+                textDecoration: "none",
+                fontWeight: isActive ? "bold" : "normal",
+              })}
+            >
+              My Bookings
+            </NavLink>
+          )}
+          {user?.role === "admin" && (
+            <NavLink
+              to="/admin/users"
+              style={({ isActive }) => ({
+                color: isActive ? "#4CAF50" : "white",
+                textDecoration: "none",
+                fontWeight: isActive ? "bold" : "normal",
+              })}
+            >
+              Admin Users
+            </NavLink>
+          )}
+        </div>
+        <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
+          {user ? (
+            <>
+              <span style={{ color: "white" }}>
+                {user.email} ({user.role})
+              </span>
               <button
-                type="button"
-                onClick={() => dispatch(logout())}
-                className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-semibold text-gray-800 hover:bg-gray-50"
+                onClick={handleLogout}
+                style={{
+                  background: "#f44336",
+                  color: "white",
+                  border: "none",
+                  padding: "0.5rem 1rem",
+                  borderRadius: "4px",
+                  cursor: "pointer",
+                }}
               >
                 Logout
               </button>
-            )}
-          </div>
+            </>
+          ) : (
+            <>
+              <Link
+                to="/login"
+                style={{
+                  color: "white",
+                  textDecoration: "none",
+                  padding: "0.5rem 1rem",
+                  border: "1px solid white",
+                  borderRadius: "4px",
+                }}
+              >
+                Login
+              </Link>
+              <Link
+                to="/register"
+                style={{
+                  background: "#4CAF50",
+                  color: "white",
+                  textDecoration: "none",
+                  padding: "0.5rem 1rem",
+                  borderRadius: "4px",
+                }}
+              >
+                Register
+              </Link>
+            </>
+          )}
         </div>
-      </header>
+      </nav>
 
       <Routes>
         <Route path="/" element={<Home />} />
-        <Route path="/spaces" element={<SpacesPage />} />
-        <Route path="/spaces/:id" element={<SpaceDetailPage />} />
-
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-
+        <Route path="/spaces" element={<SpacesPage />} />
+        <Route path="/spaces/:id" element={<SpaceDetailPage />} />
         <Route
-          path="/bookings"
+          path="/spaces/:id/book"
           element={
-            <ProtectedRoute roles={["client", "admin"]}>
-              <MyBookings />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/invoices/:id"
-          element={
-            <ProtectedRoute roles={["client", "admin"]}>
-              <Invoice />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/bookings/:id"
-          element={
-            <ProtectedRoute roles={["client", "admin"]}>
+            <ProtectedRoute>
               <BookingPage />
             </ProtectedRoute>
           }
         />
-
         <Route
-          path="/bookings/confirmation"
+          path="/booking-confirmation/:bookingId"
           element={
-            <ProtectedRoute roles={["client", "admin"]}>
+            <ProtectedRoute>
               <BookingConfirmation />
             </ProtectedRoute>
           }
         />
-
+        <Route
+          path="/my-bookings"
+          element={
+            <ProtectedRoute>
+              <MyBookings />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/invoice/:bookingId"
+          element={
+            <ProtectedRoute>
+              <Invoice />
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="/admin/users"
           element={
-            <ProtectedRoute roles={["admin"]}>
+            <ProtectedRoute adminOnly>
               <AdminUsers />
             </ProtectedRoute>
           }
         />
-
-        <Route path="*" element={<div className="mx-auto max-w-6xl p-6 text-gray-700">Not Found</div>} />
       </Routes>
     </div>
   );
 }
+
+export default App;

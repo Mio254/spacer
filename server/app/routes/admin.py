@@ -1,9 +1,10 @@
+# server/app/routes/admin.py
 import re
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt
 
 from app.extensions import db
-from app.models import User
+from app.models import User, Space, Booking
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/api/admin")
 
@@ -31,6 +32,9 @@ def _password_ok(password: str) -> bool:
     return True
 
 
+# -------------------------
+# USERS
+# -------------------------
 @admin_bp.get("/users")
 @jwt_required()
 def list_users():
@@ -133,3 +137,93 @@ def update_user(user_id: int):
 
     db.session.commit()
     return jsonify({"user": user.to_dict()}), 200
+
+
+# -------------------------
+# SPACES (moderation / activation)
+# -------------------------
+@admin_bp.get("/spaces")
+@jwt_required()
+def list_spaces():
+    denied = _require_admin()
+    if denied:
+        return denied
+
+    spaces = Space.query.order_by(Space.created_at.desc()).all()
+    return jsonify({"spaces": [s.to_dict() for s in spaces]}), 200
+
+
+@admin_bp.patch("/spaces/<int:space_id>")
+@jwt_required()
+def update_space(space_id: int):
+    denied = _require_admin()
+    if denied:
+        return denied
+
+    space = db.session.get(Space, space_id)
+    if not space:
+        return jsonify({"error": "space not found"}), 404
+
+    data = request.get_json(silent=True) or {}
+
+    # Only moderation fields for now
+    if "is_active" in data:
+        if not isinstance(data["is_active"], bool):
+            return jsonify({"error": "is_active must be boolean"}), 400
+        space.is_active = data["is_active"]
+
+    db.session.commit()
+    return jsonify({"space": space.to_dict()}), 200
+
+
+# -------------------------
+# BOOKINGS (oversight)
+# -------------------------
+_ALLOWED_BOOKING_STATUSES = {"confirmed", "cancelled", "paid", "unpaid", "pending"}
+
+
+@admin_bp.get("/bookings")
+@jwt_required()
+def list_bookings():
+    denied = _require_admin()
+    if denied:
+        return denied
+
+    bookings = (
+        Booking.query.join(Space, Booking.space_id == Space.id)
+        .add_columns(Space.name.label("space_name"))
+        .order_by(Booking.created_at.desc())
+        .all()
+    )
+
+    # bookings is a list of (Booking, space_name)
+    out = []
+    for b, space_name in bookings:
+        d = b.to_dict()
+        d["space_name"] = space_name
+        out.append(d)
+
+    return jsonify({"bookings": out}), 200
+
+
+@admin_bp.patch("/bookings/<int:booking_id>")
+@jwt_required()
+def update_booking(booking_id: int):
+    denied = _require_admin()
+    if denied:
+        return denied
+
+    booking = db.session.get(Booking, booking_id)
+    if not booking:
+        return jsonify({"error": "booking not found"}), 404
+
+    data = request.get_json(silent=True) or {}
+
+    if "status" in data:
+        status = (data.get("status") or "").strip().lower()
+        if status not in _ALLOWED_BOOKING_STATUSES:
+            return jsonify({"error": f"status must be one of: {sorted(_ALLOWED_BOOKING_STATUSES)}"}), 400
+        booking.status = status
+
+    db.session.commit()
+    return jsonify({"booking": booking.to_dict()}), 200
