@@ -26,7 +26,8 @@ def get_invoice(invoice_id):
         'issued_at': invoice.issued_at.isoformat(),
         'due_at': invoice.due_at.isoformat() if invoice.due_at else None,
         'start_time': booking.start_time.isoformat(),
-        'end_time': booking.end_time.isoformat()
+        'end_time': booking.end_time.isoformat(),
+        'payment_status': booking.payment_status
     }
 
     return jsonify(invoice_data), 200
