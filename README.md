@@ -37,7 +37,6 @@ Spacer is a Nairobi-based platform where people can discover and book unique ven
 - **Vite** - Build tool and dev server
 
 ## Setup Instructions
-
 ### Backend Setup
 
 ```bash
@@ -70,34 +69,6 @@ source venv/bin/activate
 python seed_spaces.py
 ```
 
-## Project Structure
-
-```
-spacer/
-├── client/                 # Frontend React app
-│   ├── src/
-│   │   ├── pages/         # Page components
-│   │   │   ├── SpacesPage.jsx
-│   │   │   ├── SpaceDetailPage.jsx
-│   │   │   └── AdminSpacesPage.jsx
-│   │   ├── App.jsx        # Main app component
-│   │   └── main.jsx       # Entry point
-│   └── package.json
-│
-├── server/                # Backend Flask app
-│   ├── app/
-│   │   ├── models/       # Database models
-│   │   │   └── space.py
-│   │   ├── routes/       # API endpoints
-│   │   │   └── spaces.py
-│   │   ├── __init__.py   # App factory
-│   │   └── extensions.py # Flask extensions
-│   ├── run.py            # App entry point
-│   ├── seed_spaces.py    # Database seeder
-│   └── requirements.txt
-│
-└── README.md
-```
 
 ## API Endpoints
 
@@ -162,6 +133,3 @@ Both servers support hot reload:
 
 This is a demo project for space booking management.
 
-## License
-
-MIT
