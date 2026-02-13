@@ -1,3 +1,4 @@
+// client/src/pages/MyBookings.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
@@ -35,6 +36,12 @@ export default function MyBookings() {
   const [err, setErr] = useState("");
   const [deletingId, setDeletingId] = useState(null);
 
+  async function loadBookings(activeToken) {
+    const data = await apiFetch("/api/bookings/me", { token: activeToken });
+    const list = data?.bookings || [];
+    setBookings(Array.isArray(list) ? list : []);
+  }
+
   useEffect(() => {
     let alive = true;
 
@@ -51,13 +58,7 @@ export default function MyBookings() {
       try {
         setErr("");
         setLoading(true);
-
-        const data = await apiFetch("/api/bookings/me", { token });
-
-        if (!alive) return;
-
-        const list = data?.bookings || [];
-        setBookings(Array.isArray(list) ? list : []);
+        await loadBookings(token);
       } catch (e) {
         if (!alive) return;
         setErr(e?.message || "Failed to load bookings");
@@ -79,7 +80,10 @@ export default function MyBookings() {
     const ok = window.confirm("Delete this booking? This cannot be undone.");
     if (!ok) return;
 
+    setErr("");
     const prev = bookings;
+
+    // optimistic UI
     setBookings((cur) => cur.filter((b) => b.id !== bookingId));
     setDeletingId(bookingId);
 
@@ -88,7 +92,11 @@ export default function MyBookings() {
         method: "DELETE",
         token,
       });
+
+      // re-fetch to sync payment/invoice status
+      await loadBookings(token);
     } catch (e) {
+      // revert UI
       setBookings(prev);
       setErr(e?.message || "Failed to delete booking");
     } finally {
@@ -101,7 +109,9 @@ export default function MyBookings() {
       <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
         <div>
           <h1 className="text-2xl font-extrabold text-gray-900">My Bookings</h1>
-          <p className="mt-1 text-sm text-gray-600">Manage your bookings and payments.</p>
+          <p className="mt-1 text-sm text-gray-600">
+            Manage your bookings and payments.
+          </p>
         </div>
 
         <Link
@@ -132,13 +142,18 @@ export default function MyBookings() {
       {loading ? (
         <div className="mt-8 space-y-3">
           {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="h-16 animate-pulse rounded-2xl border border-gray-200 bg-white" />
+            <div
+              key={i}
+              className="h-16 animate-pulse rounded-2xl border border-gray-200 bg-white"
+            />
           ))}
         </div>
       ) : sorted.length === 0 ? (
         <div className="mt-8 rounded-2xl border border-gray-200 bg-white p-8 text-center shadow-sm">
           <div className="text-lg font-bold text-gray-900">No bookings yet</div>
-          <p className="mt-2 text-sm text-gray-600">Go to Spaces and book your first one.</p>
+          <p className="mt-2 text-sm text-gray-600">
+            Go to Spaces and book your first one.
+          </p>
           <Link
             to="/spaces"
             className="mt-5 inline-flex rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700"
@@ -160,30 +175,48 @@ export default function MyBookings() {
             {sorted.map((b) => {
               const spaceName = b.space_name || `Space #${b.space_id ?? "—"}`;
               const total = b.total_cost ?? null;
-              const isPaid = String(b.payment_status || "").toLowerCase() === "paid";
+
+              const paymentStatus = String(b.payment_status || "").toLowerCase();
+              const bookingStatus = String(b.status || "").toLowerCase();
+
+              const isPaid =
+                paymentStatus === "paid" ||
+                bookingStatus === "paid" ||
+                Boolean(b.invoice_id);
 
               return (
-                <div key={b.id} className="grid grid-cols-12 items-center gap-3 px-4 py-4">
+                <div
+                  key={b.id}
+                  className="grid grid-cols-12 items-center gap-3 px-4 py-4"
+                >
                   <div className="col-span-12 md:col-span-4">
                     <div className="font-semibold text-gray-900">{spaceName}</div>
-                    <div className="mt-1 text-xs text-gray-600">Booking ID: {b.id}</div>
+                    <div className="mt-1 text-xs text-gray-600">
+                      Booking ID: {b.id}
+                    </div>
                   </div>
 
                   <div className="col-span-12 md:col-span-3">
                     <div className="text-sm text-gray-800">{formatRange(b)}</div>
                     {b.duration != null && (
-                      <div className="mt-1 text-xs text-gray-600">Duration: {b.duration} min</div>
+                      <div className="mt-1 text-xs text-gray-600">
+                        Duration: {b.duration} min
+                      </div>
                     )}
                   </div>
 
                   <div className="col-span-6 md:col-span-2 md:text-right">
-                    <div className="text-sm font-semibold text-gray-900">{money(total)}</div>
+                    <div className="text-sm font-semibold text-gray-900">
+                      {money(total)}
+                    </div>
                   </div>
 
                   <div className="col-span-6 md:col-span-1 text-center">
                     <span
                       className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${
-                        isPaid ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"
+                        isPaid
+                          ? "bg-green-100 text-green-700"
+                          : "bg-yellow-100 text-yellow-700"
                       }`}
                     >
                       {isPaid ? "Paid" : "Unpaid"}
