@@ -32,7 +32,6 @@ def create_space():
         image_url=data.get('image_url', ''),
         capacity=int(data['capacity']),
         location=data.get('location', ''),
-        amenities=data.get('amenities', ''),
         is_active=bool(data.get('is_active', True)),
     )
 
@@ -58,8 +57,6 @@ def update_space(space_id):
         space.capacity = int(data['capacity'])
     if 'location' in data:
         space.location = data['location']
-    if 'amenities' in data:
-        space.amenities = data['amenities']
     if 'is_active' in data:
         space.is_active = bool(data['is_active'])
 

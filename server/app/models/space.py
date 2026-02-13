@@ -19,7 +19,6 @@ class Space(db.Model):
     location = db.Column(db.String(200))
     max_capacity = db.Column(db.Integer)
     operating_hours = db.Column(db.String(100))
-    amenities = db.Column(db.Text)  # Comma-separated amenities
 
     def to_dict(self):
         return {
@@ -35,5 +34,4 @@ class Space(db.Model):
             "location": self.location,
             "max_capacity": self.max_capacity,
             "operating_hours": self.operating_hours,
-            "amenities": self.amenities,
         }
