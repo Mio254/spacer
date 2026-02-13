@@ -25,7 +25,7 @@ def create_app():
     jwt.init_app(app)
 
     # Ensure models imported for migrations
-    from app import models  # noqa: F401
+    from app import models 
 
     with app.app_context():
         db.create_all()
