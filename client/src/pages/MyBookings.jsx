@@ -1,4 +1,3 @@
-// client/src/pages/MyBookings.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";

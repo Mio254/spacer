@@ -1,4 +1,3 @@
-// client/src/pages/admin/AdminSpaces.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import { useSelector } from "react-redux";
 import { adminApi } from "../../api/admin";

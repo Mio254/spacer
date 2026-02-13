@@ -1,4 +1,3 @@
-# server/app/routes/spaces.py
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt
 
@@ -53,7 +52,7 @@ def create_space():
         is_active=bool(data.get("is_active", True)),
     )
 
-    # Optional fields: only set if the model supports them
+    
     optional_map = {
         "location": data.get("location"),
         "max_capacity": data.get("max_capacity"),
@@ -64,7 +63,7 @@ def create_space():
         if value is None or value == "":
             continue
         if hasattr(space, attr):
-            # cast where needed
+            
             if attr in ("capacity", "max_capacity"):
                 setattr(space, attr, int(value))
             else:
@@ -99,7 +98,7 @@ def update_space(space_id):
     if "is_active" in data:
         space.is_active = bool(data["is_active"])
 
-    # Optional fields if present on model
+    
     if "location" in data and hasattr(space, "location"):
         space.location = str(data["location"] or "").strip()
     if "max_capacity" in data and hasattr(space, "max_capacity"):
