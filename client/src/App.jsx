@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Routes, Route, Link, NavLink } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { logout, fetchMe } from "./features/auth/authSlice";
+import { logout, fetchMe } from "./Features/auth/authSlice";
 import { API_URL } from "./api/client";
 
 import Login from "./pages/Login";

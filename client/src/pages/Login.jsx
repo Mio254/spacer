@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { login, loginWithFirebase } from "../features/auth/authSlice";
+import { login, loginWithFirebase } from "../Features/auth/authSlice";
 import { Link, useNavigate } from "react-router-dom";
 
 import { signInWithPopup } from "firebase/auth";
