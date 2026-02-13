@@ -8,10 +8,7 @@ from app.models import User, Space, Booking
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/api/admin")
 
-
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
-
-
 
 
 def _require_admin():
@@ -35,7 +32,9 @@ def _password_ok(password: str) -> bool:
     return True
 
 
-
+# -------------------------
+# Users
+# -------------------------
 
 @admin_bp.get("/users")
 @jwt_required()
@@ -69,7 +68,9 @@ def create_user():
         return jsonify({"error": "invalid email"}), 400
 
     if not _password_ok(password):
-        return jsonify({"error": "password must be at least 8 characters and include letters and numbers"}), 400
+        return jsonify(
+            {"error": "password must be at least 8 characters and include letters and numbers"}
+        ), 400
 
     if role not in ("admin", "client"):
         return jsonify({"error": "role must be 'admin' or 'client'"}), 400
@@ -136,6 +137,79 @@ def list_spaces():
     return jsonify({"spaces": [s.to_dict() for s in spaces]}), 200
 
 
+@admin_bp.post("/spaces")
+@jwt_required()
+def create_space():
+    denied = _require_admin()
+    if denied:
+        return denied
+
+    data = request.get_json(silent=True) or {}
+
+    name = (data.get("name") or "").strip()
+    description = (data.get("description") or "").strip()
+    location = (data.get("location") or "").strip() or None
+    operating_hours = (data.get("operating_hours") or "").strip() or None
+    image_url = (data.get("image_url") or "").strip() or None
+
+    price_per_hour = data.get("price_per_hour")
+    capacity = data.get("capacity")
+    max_capacity = data.get("max_capacity")
+
+    is_active = data.get("is_active", True)
+    if not isinstance(is_active, bool):
+        return jsonify({"error": "is_active must be boolean"}), 400
+
+    if not name:
+        return jsonify({"error": "name is required"}), 400
+    if not description:
+        return jsonify({"error": "description is required"}), 400
+
+    try:
+        price_per_hour = int(price_per_hour)
+    except Exception:
+        return jsonify({"error": "price_per_hour must be an integer"}), 400
+    if price_per_hour <= 0:
+        return jsonify({"error": "price_per_hour must be > 0"}), 400
+
+    try:
+        capacity = int(capacity)
+    except Exception:
+        return jsonify({"error": "capacity must be an integer"}), 400
+    if capacity <= 0:
+        return jsonify({"error": "capacity must be > 0"}), 400
+
+   
+    if max_capacity is not None and max_capacity != "":
+        try:
+            max_capacity = int(max_capacity)
+        except Exception:
+            return jsonify({"error": "max_capacity must be an integer"}), 400
+        if max_capacity <= 0:
+            return jsonify({"error": "max_capacity must be > 0"}), 400
+        if max_capacity < capacity:
+            return jsonify({"error": "max_capacity cannot be less than capacity"}), 400
+    else:
+        max_capacity = None
+
+    space = Space(
+        name=name,
+        description=description,
+        location=location,
+        price_per_hour=price_per_hour,
+        capacity=capacity,
+        max_capacity=max_capacity,
+        operating_hours=operating_hours,
+        image_url=image_url,
+        is_active=is_active,
+    )
+
+    db.session.add(space)
+    db.session.commit()
+
+    return jsonify({"space": space.to_dict()}), 201
+
+
 @admin_bp.patch("/spaces/<int:space_id>")
 @jwt_required()
 def update_space(space_id: int):
@@ -170,12 +244,7 @@ def list_bookings():
     if denied:
         return denied
 
-    bookings = (
-        Booking.query
-        .order_by(Booking.created_at.desc())
-        .all()
-    )
-
+    bookings = Booking.query.order_by(Booking.created_at.desc()).all()
     return jsonify({"bookings": [b.to_dict() for b in bookings]}), 200
 
 

@@ -15,7 +15,7 @@ export default function AdminSpaces() {
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(true);
 
-  // Add Space modal state
+  
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
