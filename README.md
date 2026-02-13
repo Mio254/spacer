@@ -47,7 +47,7 @@ pip install -r requirements.txt
 python run.py
 ```
 
-Backend runs on: **http://127.0.0.1:5001**
+Backend runs on: **https://spacer-935q.onrender.com**
 
 ### Frontend Setup
 
@@ -57,7 +57,7 @@ npm install
 npm run dev
 ```
 
-Frontend runs on: **http://localhost:5173**
+Frontend runs on: **https://spacer-6fe2c.firebaseapp.com/**
 
 ### Database Setup
 
