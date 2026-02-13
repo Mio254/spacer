@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 
-/**
+/*
  * Invoice component displays details of a specific invoice.
  * Fetches invoice data from the backend using the ID from URL params.
  */
@@ -41,6 +41,7 @@ const Invoice = () => {
       {invoice.due_at && <p><strong>Due At:</strong> {new Date(invoice.due_at).toLocaleString()}</p>}
       <p><strong>Booking Start:</strong> {new Date(invoice.start_time).toLocaleString()}</p>
       <p><strong>Booking End:</strong> {new Date(invoice.end_time).toLocaleString()}</p>
+      <p><strong>Payment Status:</strong> {invoice.payment_status}</p>
     </div>
   );
 };
