@@ -41,19 +41,20 @@ export default function SpaceDetailPage() {
 
   useEffect(() => {
     let alive = true;
+
     (async () => {
       try {
         setErr("");
         setLoading(true);
 
-        // if your API base is NOT /api, use "/api/spaces/:id"
+        
         const data = await apiFetch(`/api/spaces/${id}`, { token });
 
         if (!alive) return;
         setSpace(data?.space || data);
       } catch (e) {
         if (!alive) return;
-        setErr(e.message || "Failed to load space");
+        setErr(e?.message || "Failed to load space");
       } finally {
         if (alive) setLoading(false);
       }
@@ -87,7 +88,10 @@ export default function SpaceDetailPage() {
       <div className="mx-auto max-w-6xl px-4 py-8">
         <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
           <div className="text-lg font-bold text-gray-900">Space not found</div>
-          <Link to="/spaces" className="mt-3 inline-block text-sm font-semibold text-blue-600 hover:underline">
+          <Link
+            to="/spaces"
+            className="mt-3 inline-block text-sm font-semibold text-blue-600 hover:underline"
+          >
             Back to spaces
           </Link>
         </div>
@@ -95,12 +99,16 @@ export default function SpaceDetailPage() {
     );
   }
 
-  const price = space.price_per_hour != null ? `KES ${space.price_per_hour}/hr` : "—";
+  const price =
+    space.price_per_hour != null ? `KES ${space.price_per_hour}/hr` : "—";
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
       <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
-        <Link to="/spaces" className="text-sm font-semibold text-blue-600 hover:underline">
+        <Link
+          to="/spaces"
+          className="text-sm font-semibold text-blue-600 hover:underline"
+        >
           ← Back to spaces
         </Link>
 
@@ -120,7 +128,9 @@ export default function SpaceDetailPage() {
             <div className="mt-4 flex flex-wrap gap-2">
               {space.capacity != null && <Chip>{space.capacity} pax</Chip>}
               {space.type && <Chip>{space.type}</Chip>}
-              {space.is_available != null && <Chip>{space.is_available ? "Available" : "Unavailable"}</Chip>}
+              {space.is_available != null && (
+                <Chip>{space.is_available ? "Available" : "Unavailable"}</Chip>
+              )}
             </div>
 
             <p className="mt-6 text-sm leading-relaxed text-gray-700">
@@ -130,17 +140,26 @@ export default function SpaceDetailPage() {
 
           <aside className="w-full md:w-[340px]">
             <div className="rounded-3xl border border-gray-200 bg-gray-50 p-5">
-              <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">Price</div>
-              <div className="mt-1 text-2xl font-extrabold text-gray-900">{price}</div>
+              <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                Price
+              </div>
+              <div className="mt-1 text-2xl font-extrabold text-gray-900">
+                {price}
+              </div>
 
-              <div className="mt-4 text-xs font-semibold uppercase tracking-wide text-gray-500">Quick actions</div>
+              <div className="mt-4 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                Quick actions
+              </div>
+
               <div className="mt-3 flex flex-col gap-2">
+                
                 <Link
-                  to={`/bookings/${space.id}`}
+                  to={`/spaces/${space.id}/book`}
                   className="rounded-xl bg-gray-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-black text-center"
                 >
                   Book this space
                 </Link>
+
                 <Link
                   to="/spaces"
                   className="rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-800 hover:bg-gray-50 text-center"

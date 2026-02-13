@@ -32,7 +32,8 @@ function Home() {
           Find and book spaces with ease.
         </h1>
         <p className="mt-4 text-base text-gray-600">
-          Explore, book, and manage spaces for meetings, collaboration, and celebration.
+          Explore, book, and manage spaces for meetings, collaboration, and
+          celebration.
         </p>
 
         <div className="mt-7 flex flex-wrap gap-3">
@@ -146,6 +147,16 @@ export default function App() {
         <Route path="/spaces" element={<SpacesPage />} />
         <Route path="/spaces/:id" element={<SpaceDetailPage />} />
 
+        {/* Book a space (create booking) */}
+        <Route
+          path="/spaces/:id/book"
+          element={
+            <ProtectedRoute roles={["client", "admin"]}>
+              <BookingPage />
+            </ProtectedRoute>
+          }
+        />
+
         <Route
           path="/login"
           element={token ? <Navigate to="/spaces" replace /> : <Login />}
@@ -174,14 +185,8 @@ export default function App() {
           }
         />
 
-        <Route
-          path="/bookings/:id"
-          element={
-            <ProtectedRoute roles={["client", "admin"]}>
-              <BookingPage />
-            </ProtectedRoute>
-          }
-        />
+        {/* ❌ Removed: /bookings/:id -> BookingPage
+            This was causing your NotFound mismatch because BookingPage expects a SPACE id. */}
 
         <Route
           path="/bookings/:id/confirmation"
@@ -243,9 +248,13 @@ export default function App() {
                 <div className="text-lg font-bold text-gray-900">Not Found</div>
                 <p className="mt-2 text-sm text-gray-600">
                   That page doesn’t exist. Go back{" "}
-                  <Link to="/" className="font-semibold text-blue-600 hover:underline">
+                  <Link
+                    to="/"
+                    className="font-semibold text-blue-600 hover:underline"
+                  >
                     home
-                  </Link>.
+                  </Link>
+                  .
                 </p>
               </div>
             </div>
